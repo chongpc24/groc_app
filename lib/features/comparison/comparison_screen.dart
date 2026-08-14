@@ -118,7 +118,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                 ),
               const SizedBox(height: 24),
               Text('Monthly Price Trend', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 8),
+              const SizedBox(height: 24),
               if (trendSpots.length < 2)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 24),
@@ -126,7 +126,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                 )
               else
                 SizedBox(
-                  height: 200,
+                  height: 250,
                   child: LineChart(
                     LineChartData(
                       gridData: const FlGridData(show: true),
