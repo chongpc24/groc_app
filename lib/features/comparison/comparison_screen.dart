@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:groc/features/search/product_icon_tile.dart';
 import '../../models/product.dart';
-import '../../models/product_repository.dart';
 
 class ComparisonScreen extends StatefulWidget {
   final String itemCode;
@@ -137,10 +136,10 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                         rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                         topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                         bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(showTitles: true, reservedSize: 24),
+                          sideTitles: SideTitles(showTitles: true, reservedSize: 25),
                         ),
                         leftTitles: AxisTitles(
-                          sideTitles: SideTitles(showTitles: true, reservedSize: 40),
+                          sideTitles: SideTitles(showTitles: true, reservedSize: 45),
                         ),
                       ),
                       borderData: FlBorderData(show: true),

@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:flutter/services.dart';
+
 class Product {
   final String itemCode;
   final String itemName;
@@ -7,7 +10,6 @@ class Product {
   final String storeName;
   final double price;
   final DateTime date;
-  final String imagePath;
 
   Product({
     required this.itemCode,
@@ -18,7 +20,6 @@ class Product {
     required this.storeName,
     required this.price,
     required this.date,
-    this.imagePath = 'assets/images/grocery.png',
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -31,7 +32,20 @@ class Product {
       storeName: json['storeName'],
       price: (json['price'] as num).toDouble(),
       date: DateTime.parse(json['date']),
-      imagePath: json['imagePath'] ?? 'assets/images/grocery.png',
     );
+  }
+}
+
+class ProductRepository {
+  static List<Product>? _cache;
+
+  static Future<List<Product>> loadAll() async {
+    if (_cache != null) return _cache!;
+
+    final jsonString = await rootBundle.loadString('assets/data/products.json');
+    final List<dynamic> jsonList = json.decode(jsonString);
+
+    _cache = jsonList.map((item) => Product.fromJson(item)).toList();
+    return _cache!;
   }
 }

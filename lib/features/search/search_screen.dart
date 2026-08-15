@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:groc/features/search/product_icon_tile.dart';
 import '../../models/product.dart';
-import '../../models/product_repository.dart';
 import '../comparison/comparison_screen.dart';
 
 class SearchScreen extends StatefulWidget {
