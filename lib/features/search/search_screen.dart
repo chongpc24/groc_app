@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:groc/features/search/product_icon_tile.dart';
 import '../../models/product.dart';
 import '../../models/product_repository.dart';
 import '../comparison/comparison_screen.dart';
@@ -61,7 +62,21 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Find Products')),
+      appBar: AppBar(
+        title: const Text('Find Products'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.shopping_cart_outlined),
+            tooltip: 'Cart',
+            onPressed: () {
+              // TODO: navigate to teammate's Cart screen once it exists.
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Cart screen coming soon')),
+              );
+            },
+          ),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Column(
@@ -108,13 +123,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          child: Image.asset(
-                            product.imagePath,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                            const Icon(Icons.image_not_supported, size: 40),
-                          ),
+                          child: ProductIconTile(category: product.category),
                         ),
                         Padding(
                           padding: const EdgeInsets.all(8.0),

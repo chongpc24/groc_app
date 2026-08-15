@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:groc/features/search/product_icon_tile.dart';
 import '../../models/product.dart';
 import '../../models/product_repository.dart';
 
@@ -86,11 +87,13 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
             padding: const EdgeInsets.all(16),
             children: [
               Center(
-                child: Image.asset(
-                  storeList.first.imagePath,
-                  height: 150,
-                  errorBuilder: (context, error, stackTrace) =>
-                  const Icon(Icons.image_not_supported, size: 80),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: SizedBox(
+                    height: 150,
+                    width: 150,
+                    child: ProductIconTile(category: storeList.first.category),
+                  ),
                 ),
               ),
               const SizedBox(height: 12),

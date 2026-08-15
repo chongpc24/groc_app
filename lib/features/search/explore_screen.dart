@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:groc/features/search/product_icon_tile.dart';
 import '../../models/product.dart';
 import '../../models/product_repository.dart';
 import 'search_screen.dart';
@@ -14,7 +15,21 @@ class ExploreScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Explore')),
+      appBar: AppBar(
+        title: const Text('Explore'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.shopping_cart_outlined),
+            tooltip: 'Cart',
+            onPressed: () {
+              // TODO: navigate to teammate's Cart screen once it exists.
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Cart screen coming soon')),
+              );
+            },
+          ),
+        ],
+      ),
       body: FutureBuilder<List<Product>>(
         future: ProductRepository.loadAll(),
         builder: (context, snapshot) {
@@ -23,9 +38,6 @@ class ExploreScreen extends StatelessWidget {
           }
           final products = snapshot.data!;
           final categories = products.map((p) => p.category).toSet().toList();
-
-          String imageForCategory(String category) =>
-              products.firstWhere((p) => p.category == category).imagePath;
 
           return Padding(
             padding: const EdgeInsets.all(12),
@@ -79,13 +91,7 @@ class ExploreScreen extends StatelessWidget {
                               Expanded(
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(12),
-                                  child: Image.asset(
-                                    imageForCategory(category),
-                                    width: double.infinity,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) =>
-                                    const Icon(Icons.image_not_supported, size: 32),
-                                  ),
+                                  child: ProductIconTile(category: category),
                                 ),
                               ),
                               const SizedBox(height: 8),
