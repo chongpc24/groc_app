@@ -91,7 +91,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                   child: SizedBox(
                     height: 150,
                     width: 150,
-                    child: ProductIconTile(category: storeList.first.category),
+                    child: ProductIconTile(itemName: widget.itemName, category: storeList.first.category),
                   ),
                 ),
               ),

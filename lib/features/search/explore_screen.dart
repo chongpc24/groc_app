@@ -90,7 +90,7 @@ class ExploreScreen extends StatelessWidget {
                               Expanded(
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(12),
-                                  child: ProductIconTile(category: category),
+                                  child: ProductIconTile(itemName: category, category: category),
                                 ),
                               ),
                               const SizedBox(height: 8),

@@ -122,7 +122,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          child: ProductIconTile(category: product.category),
+                          child: ProductIconTile(itemName: product.itemName, category: product.category),
                         ),
                         Padding(
                           padding: const EdgeInsets.all(8.0),
