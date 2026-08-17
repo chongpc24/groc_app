@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import 'package:groc/features/search/product_icon_tile.dart';
 import '../../models/product.dart';
 
@@ -15,6 +16,8 @@ class ComparisonScreen extends StatefulWidget {
 
 class _ComparisonScreenState extends State<ComparisonScreen> {
   bool _showAll = false;
+
+  final myCurrency = NumberFormat('#,##0.00', 'ms_MY');
 
   List<Product> _latestPerStore(List<Product> matches) {
     final Map<String, Product> latest = {};
@@ -109,7 +112,12 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
               const SizedBox(height: 8),
               ...visibleStores.map((product) => ListTile(
                 title: Text(product.storeName),
-                trailing: Text('RM${product.price.toStringAsFixed(2)}'),
+                trailing: Text(
+                  '${myCurrency.currencySymbol} ${myCurrency.format(product.price)}',
+                  style: const TextStyle(
+                    fontSize: 15,
+                  ),
+                ),
               )),
               if (storeList.length > 5)
                 TextButton(
