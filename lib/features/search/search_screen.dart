@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:groc/features/search/product_icon_tile.dart';
 import '../../models/product.dart';
@@ -14,25 +15,30 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _controller = TextEditingController();
-  List<Product> _allProducts = [];
   List<Product> _results = [];
   bool _loading = true;
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadInitial();
   }
 
-  Future<void> _loadData() async {
-    final products = await ProductRepository.loadAll();
-    final base = widget.initialCategory == null
-        ? products
-        : products.where((p) => p.category == widget.initialCategory).toList();
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadInitial() async {
+    final products = widget.initialCategory == null
+        ? <Product>[]
+        : await ProductRepository.byCategory(widget.initialCategory!);
 
     setState(() {
-      _allProducts = base;
-      _results = _groupByItem(base);
+      _results = _groupByItem(products);
       _loading = false;
     });
   }
@@ -49,12 +55,22 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   void _onSearchChanged(String query) {
-    setState(() {
-      final filtered = _allProducts
-          .where((product) =>
-          product.itemName.toLowerCase().contains(query.toLowerCase()))
-          .toList();
-      _results = _groupByItem(filtered);
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () async {
+      if (query.trim().isEmpty) {
+        final products = widget.initialCategory == null
+            ? <Product>[]
+            : await ProductRepository.byCategory(widget.initialCategory!);
+        if (!mounted) return;
+        setState(() => _results = _groupByItem(products));
+        return;
+      }
+      final matches = await ProductRepository.search(
+        query,
+        category: widget.initialCategory,
+      );
+      if (!mounted) return;
+      setState(() => _results = _groupByItem(matches));
     });
   }
 
@@ -93,7 +109,15 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
           ),
           Expanded(
-            child: GridView.builder(
+            child: _results.isEmpty
+                ? Center(
+              child: Text(
+                widget.initialCategory == null
+                    ? 'Type to search products'
+                    : 'No products found',
+              ),
+            )
+                : GridView.builder(
               padding: const EdgeInsets.all(12),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,

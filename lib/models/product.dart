@@ -1,5 +1,5 @@
-import 'dart:convert';
-import 'package:flutter/services.dart';
+import '../services/database_service.dart';
+import '../services/supabase_service.dart';
 
 class Product {
   final String itemCode;
@@ -37,15 +37,31 @@ class Product {
 }
 
 class ProductRepository {
-  static List<Product>? _cache;
+  static Future<int> sync() => SupabaseService.syncFromSupabase();
+
+  static Future<bool> hasLocalData() async =>
+      (await DatabaseService().rowCount()) > 0;
+
+  static Future<List<String>> getCategories() =>
+      DatabaseService().getCategories();
+
+  static Future<List<Product>> byCategory(String category) async {
+    final rows = await DatabaseService().getByCategory(category);
+    return rows.map((r) => Product.fromJson(r)).toList();
+  }
+
+  static Future<List<Product>> search(String query, {String? category}) async {
+    final rows = await DatabaseService().search(query, category: category);
+    return rows.map((r) => Product.fromJson(r)).toList();
+  }
+
+  static Future<List<Product>> byItemCode(String itemCode) async {
+    final rows = await DatabaseService().getByItemCode(itemCode);
+    return rows.map((r) => Product.fromJson(r)).toList();
+  }
 
   static Future<List<Product>> loadAll() async {
-    if (_cache != null) return _cache!;
-
-    final jsonString = await rootBundle.loadString('assets/data/products.json');
-    final List<dynamic> jsonList = json.decode(jsonString);
-
-    _cache = jsonList.map((item) => Product.fromJson(item)).toList();
-    return _cache!;
+    final rows = await DatabaseService().getAll();
+    return rows.map((r) => Product.fromJson(r)).toList();
   }
 }

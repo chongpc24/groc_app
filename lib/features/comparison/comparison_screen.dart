@@ -73,12 +73,11 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
         ],
       ),
       body: FutureBuilder<List<Product>>(
-        future: ProductRepository.loadAll(),
+        future: ProductRepository.byItemCode(widget.itemCode),
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-          final matches =
-          snapshot.data!.where((p) => p.itemCode == widget.itemCode).toList();
+          final matches = snapshot.data!;
           if (matches.isEmpty) return const Center(child: Text('No price data found.'));
 
           final storeList = _latestPerStore(matches);
@@ -115,7 +114,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                 trailing: Text(
                   '${myCurrency.currencySymbol} ${myCurrency.format(product.price)}',
                   style: const TextStyle(
-                    fontSize: 15,
+                    fontSize: 16,
                   ),
                 ),
               )),

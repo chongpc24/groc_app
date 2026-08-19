@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'features/search/explore_screen.dart';
+import 'models/product.dart';
 
-void main() {
+// TODO: replace with your own project's values from
+const String supabaseUrl = 'https://ztyngqmkgddgjkmrwsjk.supabase.co';
+const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0eW5ncW1rZ2RkZ2prbXJ3c2prIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMDUzNTYsImV4cCI6MjEwMjY4MTM1Nn0.0P4FBZxtXe3wMQS9-q55UbJAUHFyxF_ePhyiYaOefzs';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
   runApp(const MyApp());
 }
 
@@ -47,7 +55,59 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const MainNavigation(),
+      home: const StartupGate(),
+    );
+  }
+}
+
+class StartupGate extends StatefulWidget {
+  const StartupGate({super.key});
+
+  @override
+  State<StartupGate> createState() => _StartupGateState();
+}
+
+class _StartupGateState extends State<StartupGate> {
+  String _status = 'Checking local data...';
+
+  @override
+  void initState() {
+    super.initState();
+    _prepare();
+  }
+
+  Future<void> _prepare() async {
+    final hasData = await ProductRepository.hasLocalData();
+    if (!hasData) {
+      setState(() => _status = 'Downloading latest prices...');
+      try {
+        final count = await ProductRepository.sync();
+        setState(() => _status = 'Synced $count records');
+      } catch (e) {
+        setState(() => _status = 'Could not reach server: $e');
+        await Future.delayed(const Duration(seconds: 2));
+      }
+    }
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const MainNavigation()),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(_status),
+          ],
+        ),
+      ),
     );
   }
 }

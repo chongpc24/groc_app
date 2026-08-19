@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-// Tier 1: specific item keywords (checked first, most specific wins).
-// Keys are Malay keyword phrases found in item names; values are image paths.
 const Map<String, String> _itemKeywordMap = {
   'SUSU KAMBING': 'assets/images/items/susu.jpg',
   'DAGING KAMBING': 'assets/images/items/daging_kambing.jpg',
@@ -69,7 +67,6 @@ const Map<String, String> _itemKeywordMap = {
   'KETAM': 'assets/images/items/ikan.jpg',
 };
 
-// Tier 2: category-level fallback (unchanged from before).
 const Map<String, String> _categoryMap = {
   'AYAM': 'assets/images/ayam.jpg',
   'BAHAN LAUT': 'assets/images/bahan_laut.jpg',
@@ -104,42 +101,53 @@ const Map<String, String> _categoryMap = {
   'SUSU BAYI': 'assets/images/susu_bayi.jpg',
   'TELUR': 'assets/images/telur.jpg',
   'TEPUNG': 'assets/images/tepung.jpg',
-  'TERSEDIA MINUM': 'assets/images/minuman.jpg',
+  'TERSEDIA MINUM': 'assets/images/tersedia_minum.jpg',
   'UBI KENTANG': 'assets/images/kentang.jpg',
 };
 
 final List<String> _sortedItemKeywords = _itemKeywordMap.keys.toList()
   ..sort((a, b) => b.length.compareTo(a.length)); // longest/most specific first
 
+String imagePathForCategory(String category) {
+  return _categoryMap[category] ?? 'assets/images/grocery.jpg';
+}
+
 String imagePathForProduct(String itemName, String category) {
   final upperName = itemName.toUpperCase();
 
-  // Check specific item keywords first (longest match wins, avoids e.g.
-  // "KUBIS" matching before the more specific "KUBIS BULAT" does).
   for (final keyword in _sortedItemKeywords) {
     if (upperName.contains(keyword)) {
       return _itemKeywordMap[keyword]!;
     }
   }
 
-  // Fall back to category-level image.
-  return _categoryMap[category] ?? 'assets/images/grocery.jpg';
+  return imagePathForCategory(category);
 }
 
 class ProductIconTile extends StatelessWidget {
   final String itemName;
   final String category;
 
-  const ProductIconTile({super.key, required this.itemName, required this.category});
+  final bool isCategoryTile;
+
+  const ProductIconTile({
+    super.key,
+    required this.itemName,
+    required this.category,
+    this.isCategoryTile = false,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final path = isCategoryTile
+        ? imagePathForCategory(category)
+        : imagePathForProduct(itemName, category);
     return Image.asset(
-      imagePathForProduct(itemName, category),
+      path,
       width: double.infinity,
       fit: BoxFit.cover,
       errorBuilder: (context, error, stackTrace) =>
-          Image.asset(_categoryMap[category] ?? 'assets/images/grocery.jpg', fit: BoxFit.cover),
+          Image.asset(imagePathForCategory(category), fit: BoxFit.cover),
     );
   }
 }
