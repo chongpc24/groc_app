@@ -73,27 +73,43 @@ class DatabaseService {
 
   Future<List<Map<String, dynamic>>> getByCategory(String category) async {
     final db = await database;
-    return db.query('products', where: 'category = ?', whereArgs: [category]);
+    return db.rawQuery('''
+    SELECT itemCode, itemName, unit, category, premiseCode, storeName,
+           MIN(price) AS price, date
+    FROM products
+    WHERE category = ?
+    GROUP BY itemCode
+    ORDER BY itemName
+  ''', [category]);
   }
 
   Future<List<Map<String, dynamic>>> search(String query, {String? category}) async {
     final db = await database;
-    if (category != null) {
-      return db.query(
-        'products',
-        where: 'itemName LIKE ? AND category = ?',
-        whereArgs: ['%$query%', category],
-        orderBy: 'itemName',
-        limit: 100,
-      );
-    }
-    return db.query(
-      'products',
-      where: 'itemName LIKE ?',
-      whereArgs: ['%$query%'],
-      orderBy: 'itemName',
-      limit: 100,
-    );
+
+    final words = query
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .toList();
+    if (words.isEmpty) return [];
+
+    final wordClauses = words.map((_) => 'itemName LIKE ?').join(' AND ');
+    final wordArgs = words.map((w) => '%$w%').toList();
+
+    final whereClause = category != null
+        ? '$wordClauses AND category = ?'
+        : wordClauses;
+    final args = category != null ? [...wordArgs, category] : wordArgs;
+
+    return db.rawQuery('''
+    SELECT itemCode, itemName, unit, category, premiseCode, storeName,
+           MIN(price) AS price, date
+    FROM products
+    WHERE $whereClause
+    GROUP BY itemCode
+    ORDER BY itemName
+    LIMIT 100
+  ''', args);
   }
 
   Future<List<Map<String, dynamic>>> getByItemCode(String itemCode) async {

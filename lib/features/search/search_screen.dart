@@ -38,20 +38,9 @@ class _SearchScreenState extends State<SearchScreen> {
         : await ProductRepository.byCategory(widget.initialCategory!);
 
     setState(() {
-      _results = _groupByItem(products);
+      _results = products;
       _loading = false;
     });
-  }
-
-  List<Product> _groupByItem(List<Product> products) {
-    final Map<String, Product> lowestPricePerItem = {};
-    for (final product in products) {
-      final existing = lowestPricePerItem[product.itemCode];
-      if (existing == null || product.price < existing.price) {
-        lowestPricePerItem[product.itemCode] = product;
-      }
-    }
-    return lowestPricePerItem.values.toList();
   }
 
   void _onSearchChanged(String query) {
@@ -62,7 +51,7 @@ class _SearchScreenState extends State<SearchScreen> {
             ? <Product>[]
             : await ProductRepository.byCategory(widget.initialCategory!);
         if (!mounted) return;
-        setState(() => _results = _groupByItem(products));
+        setState(() => _results = products);
         return;
       }
       final matches = await ProductRepository.search(
@@ -70,7 +59,7 @@ class _SearchScreenState extends State<SearchScreen> {
         category: widget.initialCategory,
       );
       if (!mounted) return;
-      setState(() => _results = _groupByItem(matches));
+      setState(() => _results = matches);
     });
   }
 
