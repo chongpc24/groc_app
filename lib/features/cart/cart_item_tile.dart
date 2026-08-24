@@ -16,7 +16,7 @@ class CartItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final myCurrency = NumberFormat('#,##0.00', 'ms_MY');
+    final myCurrency = NumberFormat('MYR #,##0.00', 'ms_MY');
     final itemTotal = item.itemSubtotal;
 
     return Padding(

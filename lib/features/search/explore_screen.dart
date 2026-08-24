@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:groc/features/search/product_icon_tile.dart';
 import '../../models/product.dart';
 import 'search_screen.dart';
+import '../cart/cart_screen.dart';
+
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -39,15 +41,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.shopping_cart_outlined),
-            tooltip: 'Cart',
             onPressed: () {
-              // TODO: navigate to teammate's Cart screen once it exists.
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Cart screen coming soon')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CartScreen()),
               );
             },
           ),
         ],
+
       ),
       body: FutureBuilder<List<String>>(
         future: _categoriesFuture,

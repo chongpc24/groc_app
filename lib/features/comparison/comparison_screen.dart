@@ -52,6 +52,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
         title: const Text('Add to Cart'),
         content: SizedBox(
           width: double.maxFinite,

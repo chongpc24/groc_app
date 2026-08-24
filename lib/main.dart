@@ -128,7 +128,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
   final List<Widget> _tabs = const [
     ExploreScreen(),
-    CartScreen(),
+    _PlaceholderTab(label: 'Grocer'),
     _PlaceholderTab(label: 'List'),
     _PlaceholderTab(label: 'Account'),
   ];

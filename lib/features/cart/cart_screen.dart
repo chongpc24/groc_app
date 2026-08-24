@@ -14,12 +14,17 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   final CartService _cartService = CartService();
-  final myCurrency = NumberFormat('#,##0.00', 'ms_MY');
+  final myCurrency = NumberFormat('MYR #,##0.00', 'ms_MY');
 
   @override
   void initState() {
     super.initState();
-    _cartService.initialize();
+    _initializeCart();
+  }
+
+  Future<void> _initializeCart() async {
+    await _cartService.initialize();
+    setState(() {});
   }
 
   @override
