@@ -48,6 +48,57 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
     }).toList();
   }
 
+  void _showAddToCartDialog(BuildContext context, List<Product> storeList) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add to Cart'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: storeList.length,
+            itemBuilder: (context, index) {
+              final product = storeList[index];
+              return ListTile(
+                title: Text(product.storeName),
+                subtitle: Text('RM ${myCurrency.format(product.price)}'),
+                trailing: const Icon(Icons.add_shopping_cart),
+                onTap: () {
+                  final cartService = CartService();
+                  cartService.addToCart(
+                    itemCode: product.itemCode,
+                    itemName: product.itemName,
+                    premiseCode: product.premiseCode,
+                    storeName: product.storeName,
+                    price: product.price,
+                    unit: product.unit,
+                    category: product.category,
+                    quantity: 1,
+                  );
+
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Added to cart from ${product.storeName}'),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -67,8 +118,12 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
           IconButton(
             icon: const Icon(Icons.shopping_cart_outlined),
             tooltip: 'Add to Cart',
-            onPressed: () {
-              _showAddToCartDialog(context, storeList);
+            onPressed: () async {
+              final matches = await ProductRepository.byItemCode(widget.itemCode);
+              final storeList = _latestPerStore(matches);
+              if (mounted) {
+                _showAddToCartDialog(context, storeList);
+              }
             },
 
           ),
@@ -170,55 +225,5 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
         },
       ),
     );
-    void _showAddToCartDialog(BuildContext context, List<Product> storeList) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Add to Cart'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: storeList.length,
-              itemBuilder: (context, index) {
-                final product = storeList[index];
-                return ListTile(
-                  title: Text(product.storeName),
-                  subtitle: Text('RM ${myCurrency.format(product.price)}'),
-                  trailing: const Icon(Icons.add_shopping_cart),
-                  onTap: () {
-                    final cartService = CartService();
-                    cartService.addToCart(
-                      itemCode: product.itemCode,
-                      itemName: product.itemName,
-                      premiseCode: product.premiseCode,
-                      storeName: product.storeName,
-                      price: product.price,
-                      unit: product.unit,
-                      category: product.category,
-                      quantity: 1,
-                    );
-
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Added to cart from ${product.storeName}'),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-          ],
-        ),
-      );
-    }
   }
 }
