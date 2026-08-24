@@ -52,7 +52,11 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Add to Cart'),
+        backgroundColor: Colors.white,
+        title: const Text(
+          'Add to Cart',
+          style: TextStyle(fontWeight: FontWeight.bold),  // ← 加这行
+        ),
         content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
@@ -92,7 +96,10 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),

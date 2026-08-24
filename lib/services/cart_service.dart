@@ -25,6 +25,11 @@ class CartService {
 
   CartService._internal();
 
+
+  String _userLocation = 'Klang';  // DEFAULT地址（你可以改成其他地址）
+  double _userLatitude = 3.0455;   // Klang的大约坐标
+  double _userLongitude = 101.5247;
+
   // 假设用户住在 Klang（巴生）
   // 这里硬编码各店铺的距离
   static final Map<String, StoreInfo> storeDistances = {
@@ -59,7 +64,14 @@ class CartService {
       distance: 5.0,  // 5km
     ),
   };
+  // 获取用户地址
+  String get userLocation => _userLocation;
 
+  // 设置用户地址（以后用户可以改）
+  void setUserLocation(String location) {
+    _userLocation = location;
+    // 如果需要，还可以更新坐标
+  }
   late Cart _cart;
 
   /// 初始化购物车

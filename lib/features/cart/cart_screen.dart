@@ -14,12 +14,17 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   final CartService _cartService = CartService();
-  final myCurrency = NumberFormat('#,##0.00', 'ms_MY');
+  final myCurrency = NumberFormat('MYR #,##0.00', 'ms_MY');
 
   @override
   void initState() {
     super.initState();
-    _cartService.initialize();
+    _initializeCart();
+  }
+
+  Future<void> _initializeCart() async {
+    await _cartService.initialize();
+    setState(() {});
   }
 
   @override
@@ -33,7 +38,9 @@ class _CartScreenState extends State<CartScreen> {
             IconButton(
               icon: const Icon(Icons.delete_outline),
               onPressed: () {
-                _showClearCartDialog();
+                if (!_cartService.cart.isEmpty) {  // ← 加检查！
+                  _showClearCartDialog();
+                }
               },
             ),
         ],
@@ -178,9 +185,8 @@ class _CartScreenState extends State<CartScreen> {
                   });
                 },
                 onRemove: () {
-                  setState(() {
-                    _cartService.removeFromCart(premiseCode, item.itemCode);
-                  });
+                  _cartService.removeFromCart(premiseCode, item.itemCode);
+                  setState(() {});
                 },
               );
             },
