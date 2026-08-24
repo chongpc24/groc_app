@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:groc/features/search/product_icon_tile.dart';
 import '../../models/product.dart';
 import '../comparison/comparison_screen.dart';
+import '../cart/cart_screen.dart';
+
 
 class SearchScreen extends StatefulWidget {
   final String? initialCategory;
@@ -73,11 +75,12 @@ class _SearchScreenState extends State<SearchScreen> {
             icon: const Icon(Icons.shopping_cart_outlined),
             tooltip: 'Cart',
             onPressed: () {
-              // TODO: navigate to teammate's Cart screen once it exists.
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Cart screen coming soon')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CartScreen()),
               );
             },
+
           ),
         ],
       ),
