@@ -55,7 +55,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
         backgroundColor: Colors.white,
         title: const Text(
           'Add to Cart',
-          style: TextStyle(fontWeight: FontWeight.bold),  // ← 加这行
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
         content: SizedBox(
           width: double.maxFinite,

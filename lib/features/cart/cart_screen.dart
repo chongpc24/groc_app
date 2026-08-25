@@ -33,7 +33,6 @@ class _CartScreenState extends State<CartScreen> {
       appBar: AppBar(
         title: const Text('Shopping Cart'),
         actions: [
-          // 清空购物车按钮
           if (!_cartService.cart.isEmpty)
             IconButton(
               icon: const Icon(Icons.delete_outline),
@@ -54,7 +53,6 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  /// 空购物车UI
   Widget _buildEmptyCart(BuildContext context) {
     return Center(
       child: Column(
@@ -78,7 +76,6 @@ class _CartScreenState extends State<CartScreen> {
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () {
-              // 返回到搜索页面
               Navigator.pop(context);
             },
             icon: const Icon(Icons.shopping_bag_outlined),
@@ -89,7 +86,6 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  /// 购物车内容
   Widget _buildCartContent(BuildContext context) {
     final cart = _cartService.cart;
     final storeList = cart.storeList;
@@ -101,18 +97,47 @@ class _CartScreenState extends State<CartScreen> {
       child: ListView(
         padding: const EdgeInsets.all(12),
         children: [
-          // 显示每个店铺和其商品
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  const Icon(Icons.location_on, color: Colors.green),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Delivery To:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(_cartService.userLocation),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      // 以后可以让用户改地址
+                    },
+                    child: const Text('Change'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
           for (final premiseCode in storeList) ...[
             _buildStoreSection(context, premiseCode),
             const SizedBox(height: 12),
           ],
-          const SizedBox(height: 80), // 底部留空，防止内容被底部栏遮挡
+          const SizedBox(height: 80),
         ],
       ),
     );
   }
 
-  /// 店铺分组卡片
   Widget _buildStoreSection(BuildContext context, String premiseCode) {
     final cart = _cartService.cart;
     final storeItems = cart.getStoreItems(premiseCode);
@@ -124,7 +149,6 @@ class _CartScreenState extends State<CartScreen> {
     return Card(
       child: Column(
         children: [
-          // 店铺头部
           Container(
             color: Colors.grey[100],
             padding: const EdgeInsets.all(12),
@@ -153,19 +177,18 @@ class _CartScreenState extends State<CartScreen> {
                     ],
                   ),
                 ),
-                // 删除整个店铺按钮
                 IconButton(
                   icon: const Icon(Icons.close, size: 20),
                   onPressed: () {
-                    _showRemoveStoreDialog(context, premiseCode);
+                    if (premiseCode.isNotEmpty) {
+                      _showRemoveStoreDialog(context, premiseCode);
+                    }
                   },
                   tooltip: 'Remove this store',
                 ),
               ],
             ),
           ),
-
-          // 商品列表
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -192,7 +215,6 @@ class _CartScreenState extends State<CartScreen> {
             },
           ),
 
-          // 费用汇总
           Container(
             padding: const EdgeInsets.all(12),
             color: Colors.grey[50],
@@ -201,20 +223,20 @@ class _CartScreenState extends State<CartScreen> {
               children: [
                 _buildSummaryRow(
                   'Subtotal:',
-                  'RM ${myCurrency.format(subtotal)}',
+                  '${myCurrency.format(subtotal)}',
                 ),
                 const SizedBox(height: 4),
                 _buildSummaryRow(
                   'Delivery:',
                   deliveryFee == 0
                       ? 'FREE'
-                      : 'RM ${myCurrency.format(deliveryFee)}',
+                      : '${myCurrency.format(deliveryFee)}',
                   isFree: deliveryFee == 0,
                 ),
                 const Divider(height: 12),
                 _buildSummaryRow(
                   'Store Total:',
-                  'RM ${myCurrency.format(storeTotal)}',
+                  '${myCurrency.format(storeTotal)}',
                   isBold: true,
                 ),
               ],
@@ -225,7 +247,6 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  /// 费用行
   Widget _buildSummaryRow(
       String label,
       String value, {
@@ -252,7 +273,6 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  /// 底部总价栏
   Widget _buildBottomSummary(BuildContext context) {
     final cart = _cartService.cart;
     final itemsSubtotal = cart.getItemsSubtotal();
@@ -282,7 +302,7 @@ class _CartScreenState extends State<CartScreen> {
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                     Text(
-                      'RM ${myCurrency.format(itemsSubtotal)}',
+                      '${myCurrency.format(itemsSubtotal)}',
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -290,11 +310,10 @@ class _CartScreenState extends State<CartScreen> {
                     ),
                   ],
                 ),
-                // 配送费提示
                 if (totalDelivery > 0)
                   Chip(
                     label: Text(
-                      'Delivery: RM ${myCurrency.format(totalDelivery)}',
+                      'Delivery: ${myCurrency.format(totalDelivery)}',
                       style: const TextStyle(fontSize: 12),
                     ),
                     backgroundColor: Colors.orange[50],
@@ -313,7 +332,7 @@ class _CartScreenState extends State<CartScreen> {
                   _showCheckoutDialog(context, grandTotal);
                 },
                 child: Text(
-                  'Checkout - RM ${myCurrency.format(grandTotal)}',
+                  'Checkout - ${myCurrency.format(grandTotal)}',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -328,19 +347,23 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  /// 移除整个店铺的对话框
   void _showRemoveStoreDialog(BuildContext context, String premiseCode) {
+    final storeInfo = _cartService.getStoreInfo(premiseCode);
+    final storeName = storeInfo?.storeName ?? 'Unknown Store';
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Remove Store'),
+        title: const Text('Remove Store',
+          style: TextStyle(fontWeight: FontWeight.bold),),
         content: Text(
           'Remove all items from ${_cartService.getStoreInfo(premiseCode)?.storeName}?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text('Cancel',
+              style: TextStyle(fontWeight: FontWeight.bold),),
           ),
           TextButton(
             onPressed: () {
@@ -351,24 +374,24 @@ class _CartScreenState extends State<CartScreen> {
               Navigator.pop(context);
               setState(() {});
             },
-            child: const Text('Remove', style: TextStyle(color: Colors.red)),
+            child: const Text('Remove', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
           ),
         ],
       ),
     );
   }
 
-  /// 清空购物车的对话框
   void _showClearCartDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Clear Cart'),
+        title: const Text('Clear Cart',
+          style: TextStyle(fontWeight: FontWeight.bold),),
         content: const Text('Are you sure you want to clear your cart?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold),),
           ),
           TextButton(
             onPressed: () {
@@ -376,19 +399,19 @@ class _CartScreenState extends State<CartScreen> {
               Navigator.pop(context);
               setState(() {});
             },
-            child: const Text('Clear', style: TextStyle(color: Colors.red)),
+            child: const Text('Clear', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
           ),
         ],
       ),
     );
   }
 
-  /// 结账的对话框
   void _showCheckoutDialog(BuildContext context, double total) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Checkout'),
+        title: const Text('Checkout',
+          style: TextStyle(fontWeight: FontWeight.bold),),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -400,7 +423,7 @@ class _CartScreenState extends State<CartScreen> {
               children: [
                 const Text('Total Amount:'),
                 Text(
-                  'RM ${myCurrency.format(total)}',
+                  '${myCurrency.format(total)}',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -418,20 +441,19 @@ class _CartScreenState extends State<CartScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold),),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Payment processing... (TODO)'),
+                  content: Text('Payment processing... '),
                   duration: Duration(seconds: 2),
                 ),
               );
-              // 这里以后可以连接支付功能
             },
-            child: const Text('Pay Now'),
+            child: const Text('Pay Now', style: TextStyle(fontWeight: FontWeight.bold),),
           ),
         ],
       ),
