@@ -19,8 +19,9 @@ class DatabaseService {
     final path = join(dir.path, 'groc.db');
     return openDatabase(
       path,
-      version: 1,
+      version: 2, // ✅ 版本从1改成2 (新增cart表)
       onCreate: (db, version) async {
+        // 产品表（保持不变）
         await db.execute('''
           CREATE TABLE products(
             itemCode TEXT,
@@ -36,9 +37,89 @@ class DatabaseService {
         await db.execute('CREATE INDEX idx_category ON products(category)');
         await db.execute('CREATE INDEX idx_itemName ON products(itemName)');
         await db.execute('CREATE INDEX idx_itemCode ON products(itemCode)');
+
+        // ✅ NEW: 购物车表
+        await db.execute('''
+          CREATE TABLE cart(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            itemCode TEXT NOT NULL,
+            itemName TEXT NOT NULL,
+            premiseCode TEXT NOT NULL,
+            storeName TEXT NOT NULL,
+            price REAL NOT NULL,
+            quantity INTEGER NOT NULL,
+            addedAt TEXT NOT NULL,
+            syncedAt TEXT,
+            syncStatus TEXT DEFAULT 'pending'
+          )
+        ''');
+        await db.execute('CREATE INDEX idx_premise ON cart(premiseCode)');
+        await db.execute('CREATE INDEX idx_itemCode_cart ON cart(itemCode)');
+        await db.execute('CREATE INDEX idx_syncStatus ON cart(syncStatus)');
+
+        // ✅ NEW: 订单历史表
+        await db.execute('''
+          CREATE TABLE order_history(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            orderId TEXT UNIQUE NOT NULL,
+            premiseCode TEXT NOT NULL,
+            storeName TEXT NOT NULL,
+            totalAmount REAL NOT NULL,
+            itemCount INTEGER NOT NULL,
+            orderDate TEXT NOT NULL,
+            deliveryAddress TEXT,
+            status TEXT DEFAULT 'pending',
+            syncedAt TEXT,
+            syncStatus TEXT DEFAULT 'pending'
+          )
+        ''');
+        await db.execute('CREATE INDEX idx_orderDate ON order_history(orderDate)');
+        await db.execute('CREATE INDEX idx_syncStatus_order ON order_history(syncStatus)');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          // 如果是从v1升级，创建新表
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS cart(
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              itemCode TEXT NOT NULL,
+              itemName TEXT NOT NULL,
+              premiseCode TEXT NOT NULL,
+              storeName TEXT NOT NULL,
+              price REAL NOT NULL,
+              quantity INTEGER NOT NULL,
+              addedAt TEXT NOT NULL,
+              syncedAt TEXT,
+              syncStatus TEXT DEFAULT 'pending'
+            )
+          ''');
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_premise ON cart(premiseCode)');
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_itemCode_cart ON cart(itemCode)');
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_syncStatus ON cart(syncStatus)');
+
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS order_history(
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              orderId TEXT UNIQUE NOT NULL,
+              premiseCode TEXT NOT NULL,
+              storeName TEXT NOT NULL,
+              totalAmount REAL NOT NULL,
+              itemCount INTEGER NOT NULL,
+              orderDate TEXT NOT NULL,
+              deliveryAddress TEXT,
+              status TEXT DEFAULT 'pending',
+              syncedAt TEXT,
+              syncStatus TEXT DEFAULT 'pending'
+            )
+          ''');
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_orderDate ON order_history(orderDate)');
+          await db.execute('CREATE INDEX IF NOT EXISTS idx_syncStatus_order ON order_history(syncStatus)');
+        }
       },
     );
   }
+
+  // ============= PRODUCTS (保持现有功能) =============
 
   Future<void> replaceAll(List<Map<String, dynamic>> rows) async {
     final db = await database;
@@ -115,5 +196,149 @@ class DatabaseService {
   Future<List<Map<String, dynamic>>> getByItemCode(String itemCode) async {
     final db = await database;
     return db.query('products', where: 'itemCode = ?', whereArgs: [itemCode]);
+  }
+
+  // ============= CART 操作 (NEW) =============
+
+  /// 添加到购物车
+  Future<int> addToCart(Map<String, dynamic> cartItem) async {
+    final db = await database;
+    return db.insert('cart', {
+      ...cartItem,
+      'addedAt': DateTime.now().toIso8601String(),
+      'syncStatus': 'pending',
+    });
+  }
+
+  /// 获取所有购物车项目
+  Future<List<Map<String, dynamic>>> getAllCartItems() async {
+    final db = await database;
+    return db.query('cart', orderBy: 'addedAt DESC');
+  }
+
+  /// 按店铺获取购物车
+  Future<List<Map<String, dynamic>>> getCartByStore(String premiseCode) async {
+    final db = await database;
+    return db.query(
+      'cart',
+      where: 'premiseCode = ?',
+      whereArgs: [premiseCode],
+      orderBy: 'addedAt DESC',
+    );
+  }
+
+  /// 更新购物车项目数量
+  Future<void> updateCartQuantity(int id, int quantity) async {
+    final db = await database;
+    if (quantity <= 0) {
+      await db.delete('cart', where: 'id = ?', whereArgs: [id]);
+    } else {
+      await db.update(
+        'cart',
+        {
+          'quantity': quantity,
+          'syncStatus': 'pending',
+        },
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    }
+  }
+
+  /// 删除购物车项目
+  Future<void> removeFromCart(int id) async {
+    final db = await database;
+    await db.delete('cart', where: 'id = ?', whereArgs: [id]);
+  }
+
+  /// 清空购物车
+  Future<void> clearCart() async {
+    final db = await database;
+    await db.delete('cart');
+  }
+
+  /// 清空特定店铺的购物车
+  Future<void> clearCartByStore(String premiseCode) async {
+    final db = await database;
+    await db.delete('cart', where: 'premiseCode = ?', whereArgs: [premiseCode]);
+  }
+
+  /// 获取待同步的购物车项目
+  Future<List<Map<String, dynamic>>> getPendingSyncCart() async {
+    final db = await database;
+    return db.query(
+      'cart',
+      where: 'syncStatus = ?',
+      whereArgs: ['pending'],
+    );
+  }
+
+  /// 标记购物车项为已同步
+  Future<void> markCartAsSynced(List<int> ids) async {
+    final db = await database;
+    for (final id in ids) {
+      await db.update(
+        'cart',
+        {
+          'syncStatus': 'synced',
+          'syncedAt': DateTime.now().toIso8601String(),
+        },
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    }
+  }
+
+  // ============= 订单历史 (NEW) =============
+
+  /// 保存订单
+  Future<int> saveOrder(Map<String, dynamic> order) async {
+    final db = await database;
+    return db.insert('order_history', {
+      ...order,
+      'orderDate': DateTime.now().toIso8601String(),
+      'syncStatus': 'pending',
+    });
+  }
+
+  /// 获取订单历史
+  Future<List<Map<String, dynamic>>> getOrderHistory() async {
+    final db = await database;
+    return db.query('order_history', orderBy: 'orderDate DESC');
+  }
+
+  /// 获取特定店铺的订单
+  Future<List<Map<String, dynamic>>> getOrdersByStore(String premiseCode) async {
+    final db = await database;
+    return db.query(
+      'order_history',
+      where: 'premiseCode = ?',
+      whereArgs: [premiseCode],
+      orderBy: 'orderDate DESC',
+    );
+  }
+
+  /// 获取待同步的订单
+  Future<List<Map<String, dynamic>>> getPendingSyncOrders() async {
+    final db = await database;
+    return db.query(
+      'order_history',
+      where: 'syncStatus = ?',
+      whereArgs: ['pending'],
+    );
+  }
+
+  /// 标记订单为已同步
+  Future<void> markOrderAsSynced(String orderId) async {
+    final db = await database;
+    await db.update(
+      'order_history',
+      {
+        'syncStatus': 'synced',
+        'syncedAt': DateTime.now().toIso8601String(),
+      },
+      where: 'orderId = ?',
+      whereArgs: [orderId],
+    );
   }
 }

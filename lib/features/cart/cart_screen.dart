@@ -256,12 +256,14 @@ class _CartScreenState extends State<CartScreen> {
           label,
           style: TextStyle(
             fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            fontSize: isBold ? 18 : 16, // ✅ 改大了
           ),
         ),
         Text(
           value,
           style: TextStyle(
             fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            fontSize: isBold ? 28 : 18, // ✅ 改大了！28pt BOLD！
             color: isFree ? Colors.green : null,
           ),
         ),
@@ -299,7 +301,7 @@ class _CartScreenState extends State<CartScreen> {
                     Text(
                       '${myCurrency.format(itemsSubtotal)}',
                       style: const TextStyle(
-                        fontSize: 18,
+                        fontSize: 20, // ✅ 改大了！从18改成20
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -321,7 +323,7 @@ class _CartScreenState extends State<CartScreen> {
                 child: Text(
                   'Checkout - ${myCurrency.format(grandTotal)}',
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 20, // ✅ 改大了！从16改成20
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
