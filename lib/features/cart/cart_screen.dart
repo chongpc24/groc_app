@@ -152,7 +152,9 @@ class _CartScreenState extends State<CartScreen> {
   Widget _buildStoreSection(BuildContext context, String premiseCode) {
     final cart = _cartService.cart;
     final storeItems = cart.getStoreItems(premiseCode);
-    final storeName = _cartService.getStoreName(premiseCode) ?? 'Store';
+    final storeName = storeItems.isNotEmpty
+        ? storeItems.first.storeName
+        : 'Store';  // ✅
     final subtotal = cart.getStoreItemsSubtotal(premiseCode);
 
     return Card(

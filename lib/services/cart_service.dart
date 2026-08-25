@@ -1,5 +1,5 @@
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+import 'database_service.dart';
+import 'supabase_service.dart';
 import '../models/cart.dart';
 import '../models/cart_item.dart';
 import '../models/order.dart';
@@ -13,15 +13,7 @@ class CartService {
 
   CartService._internal();
 
-  // Store names mapping (full names)
-  static const Map<String, String> storeNames = {
-    'nsk': 'Noonan Supermarket Klang',
-    'aeon': 'AEON Big Klang',
-    'lotus': 'Lotus\'s Klang',
-    'giant': 'Giant Hypermarket Klang',
-    'hero': 'Hero Market Klang',
-    'tesco': 'Tesco Klang',
-  };
+  final DatabaseService _dbService = DatabaseService();
 
   String _userLocation = 'Klang';
 
@@ -35,15 +27,12 @@ class CartService {
 
   Future<void> initialize() async {
     _cart = Cart();
-    await _loadCart();
+    await _loadCartFromLocalDatabase();
   }
 
   Cart get cart => _cart;
 
-  /// Get the full store name
-  String? getStoreName(String premiseCode) {
-    return storeNames[premiseCode];
-  }
+  // ============= 购物车操作 =============
 
   void addToCart({
     required String itemCode,
@@ -63,146 +52,162 @@ class CartService {
       price: price,
       unit: unit,
       category: category,
+
       quantity: quantity,
     );
 
     _cart.addItem(cartItem);
-    _saveCart();
+    _saveCartToLocalDatabase();
   }
 
   void removeFromCart(String premiseCode, String itemCode) {
     _cart.removeItem(premiseCode, itemCode);
-    _saveCart();
+    _saveCartToLocalDatabase();
   }
 
   void updateQuantity(String premiseCode, String itemCode, int newQuantity) {
     _cart.updateQuantity(premiseCode, itemCode, newQuantity);
-    _saveCart();
+    _saveCartToLocalDatabase();
   }
 
   void clearCart() {
     _cart.clear();
-    _saveCart();
+    _saveCartToLocalDatabase();
   }
 
-  /// Snapshots the current cart contents as a completed [Order] and saves
-  /// it to the locally persisted order history (most recent first).
+  // ============= 订单历史 (使用SQLite) =============
+
+  /// 保存订单到本地数据库和云端
   Future<void> saveOrderToHistory() async {
-    final items = _cart
-        .getAllItems()
-        .map((item) => item.copyWith())
-        .toList();
+    final items = _cart.getAllItems().map((item) => item.copyWith()).toList();
 
     if (items.isEmpty) return;
 
-    final order = Order(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      date: DateTime.now(),
-      items: items,
-      total: _cart.getGrandTotal(),
-    );
-
-    final prefs = await SharedPreferences.getInstance();
-    final historyJsonString = prefs.getString('order_history');
-
-    List<dynamic> historyList = [];
-    if (historyJsonString != null) {
-      try {
-        historyList = jsonDecode(historyJsonString) as List<dynamic>;
-      } catch (e) {
-        historyList = [];
-      }
-    }
-
-    historyList.insert(0, order.toJson());
-    await prefs.setString('order_history', jsonEncode(historyList));
-  }
-
-  Future<List<Order>> getOrderHistory() async {
-    final prefs = await SharedPreferences.getInstance();
-    final historyJsonString = prefs.getString('order_history');
-
-    if (historyJsonString == null) return [];
+    final orderId = 'ORD_${DateTime.now().millisecondsSinceEpoch}';
+    final total = _cart.getGrandTotal();
 
     try {
-      final historyList = jsonDecode(historyJsonString) as List<dynamic>;
-      return historyList
-          .map((data) => Order.fromJson(data as Map<String, dynamic>))
-          .toList();
+      // 保存到本地SQLite
+      await _dbService.saveOrder({
+        'orderId': orderId,
+        'premiseCode': _cart.storeList.isNotEmpty ? _cart.storeList.first : 'unknown',
+        'storeName': items.isNotEmpty ? items.first.storeName : 'Store',
+        'totalAmount': total,
+        'itemCount': items.length,
+        'deliveryAddress': _userLocation,
+      });
+
+      // 同时保存到Supabase
+      try {
+        await SupabaseService.saveOrderToSupabase(
+          premiseCode: _cart.storeList.isNotEmpty ? _cart.storeList.first : 'unknown',
+          storeName: items.isNotEmpty ? items.first.storeName : 'Store',
+          totalAmount: total,
+          itemCount: items.length,
+          deliveryAddress: _userLocation,
+        );
+      } catch (e) {
+        // 云端保存失败，但本地已保存
+      }
     } catch (e) {
-      print('Error loading order history: $e');
+      rethrow;
+    }
+  }
+
+  /// 获取订单历史
+  Future<List<Order>> getOrderHistory() async {
+    try {
+      final orders = await _dbService.getOrderHistory();
+      return orders.map((orderData) {
+        return Order(
+          id: orderData['orderId'],
+          date: DateTime.parse(orderData['orderDate']),
+          items: [],
+          total: orderData['totalAmount'],
+        );
+      }).toList();
+    } catch (e) {
       return [];
     }
   }
 
-  Future<void> _saveCart() async {
-    final prefs = await SharedPreferences.getInstance();
+  // ============= 同步操作 =============
 
-    final cartData = _cartToJson();
-    await prefs.setString('cart_data', jsonEncode(cartData));
+  /// 同步购物车到Supabase
+  Future<void> syncToCloud() async {
+    try {
+      await SupabaseService.syncCartToSupabase();
+    } catch (e) {
+      rethrow;
+    }
   }
 
-  Future<void> _loadCart() async {
-    final prefs = await SharedPreferences.getInstance();
-    final cartJsonString = prefs.getString('cart_data');
+  /// 从Supabase下载购物车
+  Future<void> syncFromCloud() async {
+    try {
+      await SupabaseService.syncCartFromSupabase();
+      await _loadCartFromLocalDatabase();
+    } catch (e) {
+      rethrow;
+    }
+  }
 
-    if (cartJsonString != null) {
-      try {
-        final cartData = jsonDecode(cartJsonString) as Map<String, dynamic>;
-        _cartFromJson(cartData);
-      } catch (e) {
-        print('Error loading cart: $e');
-        _cart = Cart();
+  /// 双向同步
+  Future<void> syncBothWays() async {
+    try {
+      await SupabaseService.syncCartBothWays();
+      await _loadCartFromLocalDatabase();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // ============= 本地数据库操作 =============
+
+  /// 保存购物车到本地SQLite
+  Future<void> _saveCartToLocalDatabase() async {
+    try {
+      await _dbService.clearCart();
+
+      for (final premiseCode in _cart.storeList) {
+        final items = _cart.getStoreItems(premiseCode);
+        for (final item in items) {
+          await _dbService.addToCart({
+            'itemCode': item.itemCode,
+            'itemName': item.itemName,
+            'premiseCode': item.premiseCode,
+            'storeName': item.storeName,
+            'price': item.price,
+            'quantity': item.quantity,
+          });
+        }
       }
-    } else {
+    } catch (e) {
+      // 错误处理
+    }
+  }
+
+  /// 从本地SQLite加载购物车
+  Future<void> _loadCartFromLocalDatabase() async {
+    try {
       _cart = Cart();
-    }
-  }
+      final cartItems = await _dbService.getAllCartItems();
 
-  Map<String, dynamic> _cartToJson() {
-    final itemsByStore = <String, dynamic>{};
-
-    for (final premiseCode in _cart.storeList) {
-      final items = _cart.getStoreItems(premiseCode);
-      itemsByStore[premiseCode] = items.map((item) {
-        return {
-          'itemCode': item.itemCode,
-          'itemName': item.itemName,
-          'premiseCode': item.premiseCode,
-          'storeName': item.storeName,
-          'price': item.price,
-          'unit': item.unit,
-          'category': item.category,
-          'quantity': item.quantity,
-        };
-      }).toList();
-    }
-
-    return {'itemsByStore': itemsByStore};
-  }
-
-  void _cartFromJson(Map<String, dynamic> data) {
-    _cart = Cart();
-
-    final itemsByStore = data['itemsByStore'] as Map<String, dynamic>? ?? {};
-
-    for (final entry in itemsByStore.entries) {
-      final premiseCode = entry.key;
-      final itemsData = entry.value as List<dynamic>;
-
-      for (final itemData in itemsData) {
+      for (final itemData in cartItems) {
         final item = CartItem(
           itemCode: itemData['itemCode'],
           itemName: itemData['itemName'],
           premiseCode: itemData['premiseCode'],
           storeName: itemData['storeName'],
-          price: (itemData['price'] as num).toDouble(),
-          unit: itemData['unit'],
-          category: itemData['category'],
+          price: itemData['price'],
+          unit: '',
+          category: '',
           quantity: itemData['quantity'],
         );
         _cart.addItem(item);
       }
+    } catch (e) {
+      _cart = Cart();
     }
   }
 }
