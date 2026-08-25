@@ -82,9 +82,17 @@ class CartService {
   }
 
   StoreInfo? getStoreInfo(String premiseCode) {
-    return storeDistances[premiseCode];
+    final normalizedCode = _normalizeCode(premiseCode);
+    return storeDistances[normalizedCode];
   }
 
+  String _normalizeCode(String code) {
+    if (code == '136') return 'the_store';
+    if (code == '176') return 'lotus';
+    if (code == '183') return 'giant';
+    if (code == '330') return 'tesco';
+    return code;
+  }
   void addToCart({
     required String itemCode,
     required String itemName,

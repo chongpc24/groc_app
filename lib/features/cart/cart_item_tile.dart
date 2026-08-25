@@ -42,7 +42,7 @@ class CartItemTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${item.storeName} - ${item.itemName}',
+                  item.itemName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -83,6 +83,10 @@ class CartItemTile extends StatelessWidget {
               const SizedBox(height: 4),
               _buildQuantityControl(),
             ],
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            onPressed: onRemove,
           ),
         ],
       ),
