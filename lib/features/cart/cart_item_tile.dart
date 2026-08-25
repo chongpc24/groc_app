@@ -23,7 +23,6 @@ class CartItemTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         children: [
-          // 商品图标（简单方形）
           Container(
             width: 60,
             height: 60,
@@ -38,13 +37,12 @@ class CartItemTile extends StatelessWidget {
           ),
           const SizedBox(width: 12),
 
-          // 商品信息
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.itemName,
+                  '${item.storeName} - ${item.itemName}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -61,7 +59,7 @@ class CartItemTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'RM ${myCurrency.format(item.price)} each',
+                  '${myCurrency.format(item.price)} each',
                   style: const TextStyle(
                     color: Colors.green,
                     fontWeight: FontWeight.w600,
@@ -72,19 +70,17 @@ class CartItemTile extends StatelessWidget {
             ),
           ),
 
-          // 数量和总价
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                'RM ${myCurrency.format(itemTotal)}',
+                '${myCurrency.format(itemTotal)}',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
                 ),
               ),
               const SizedBox(height: 4),
-              // 数量控制
               _buildQuantityControl(),
             ],
           ),
@@ -93,7 +89,6 @@ class CartItemTile extends StatelessWidget {
     );
   }
 
-  /// 数量控制器（-、数量、+）
   Widget _buildQuantityControl() {
     return Container(
       decoration: BoxDecoration(
@@ -103,7 +98,6 @@ class CartItemTile extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 减号
           GestureDetector(
             onTap: item.quantity > 1
                 ? () => onQuantityChanged(item.quantity - 1)
@@ -119,7 +113,6 @@ class CartItemTile extends StatelessWidget {
               ),
             ),
           ),
-          // 数量
           Container(
             width: 32,
             alignment: Alignment.center,
@@ -128,7 +121,6 @@ class CartItemTile extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
-          // 加号
           GestureDetector(
             onTap: () => onQuantityChanged(item.quantity + 1),
             child: Container(
