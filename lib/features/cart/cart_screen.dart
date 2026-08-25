@@ -4,6 +4,7 @@ import '../../models/cart.dart';
 import '../../models/cart_item.dart';
 import '../../services/cart_service.dart';
 import 'cart_item_tile.dart';
+import 'order_history_screen.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -33,13 +34,23 @@ class _CartScreenState extends State<CartScreen> {
       appBar: AppBar(
         title: const Text('Shopping Cart'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: 'Order history',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const OrderHistoryScreen(),
+                ),
+              );
+            },
+          ),
           if (!_cartService.cart.isEmpty)
             IconButton(
               icon: const Icon(Icons.delete_outline),
               onPressed: () {
-                if (!_cartService.cart.isEmpty) {  // ← 加检查！
-                  _showClearCartDialog();
-                }
+                _showClearCartDialog();
               },
             ),
         ],
@@ -118,7 +129,7 @@ class _CartScreenState extends State<CartScreen> {
                   ),
                   TextButton(
                     onPressed: () {
-                      // 以后可以让用户改地址
+                      _showChangeAddressDialog();
                     },
                     child: const Text('Change'),
                   ),
@@ -141,10 +152,8 @@ class _CartScreenState extends State<CartScreen> {
   Widget _buildStoreSection(BuildContext context, String premiseCode) {
     final cart = _cartService.cart;
     final storeItems = cart.getStoreItems(premiseCode);
-    final storeInfo = _cartService.getStoreInfo(premiseCode);
+    final storeName = _cartService.getStoreName(premiseCode) ?? 'Store';
     final subtotal = cart.getStoreItemsSubtotal(premiseCode);
-    final deliveryFee = cart.getStoreDeliveryFee(premiseCode);
-    final storeTotal = cart.getStoreTotal(premiseCode);
 
     return Card(
       child: Column(
@@ -157,31 +166,19 @@ class _CartScreenState extends State<CartScreen> {
                 Icon(Icons.storefront, color: Colors.green),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        storeInfo?.storeName ?? 'Store',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      Text(
-                        '${storeInfo?.distance ?? 0} km away',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    storeName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close, size: 20),
                   onPressed: () {
                     if (premiseCode.isNotEmpty) {
-                      _showRemoveStoreDialog(context, premiseCode);
+                      _showRemoveStoreDialog(context, premiseCode, storeName);
                     }
                   },
                   tooltip: 'Remove this store',
@@ -208,8 +205,9 @@ class _CartScreenState extends State<CartScreen> {
                   });
                 },
                 onRemove: () {
-                  _cartService.removeFromCart(premiseCode, item.itemCode);
-                  setState(() {});
+                  setState(() {
+                    _cartService.removeFromCart(premiseCode, item.itemCode);
+                  });
                 },
               );
             },
@@ -228,15 +226,13 @@ class _CartScreenState extends State<CartScreen> {
                 const SizedBox(height: 4),
                 _buildSummaryRow(
                   'Delivery:',
-                  deliveryFee == 0
-                      ? 'FREE'
-                      : '${myCurrency.format(deliveryFee)}',
-                  isFree: deliveryFee == 0,
+                  'FREE',
+                  isFree: true,
                 ),
                 const Divider(height: 12),
                 _buildSummaryRow(
                   'Store Total:',
-                  '${myCurrency.format(storeTotal)}',
+                  '${myCurrency.format(subtotal)}',
                   isBold: true,
                 ),
               ],
@@ -276,7 +272,6 @@ class _CartScreenState extends State<CartScreen> {
   Widget _buildBottomSummary(BuildContext context) {
     final cart = _cartService.cart;
     final itemsSubtotal = cart.getItemsSubtotal();
-    final totalDelivery = cart.getTotalDeliveryFee();
     final grandTotal = cart.getGrandTotal();
 
     return Container(
@@ -310,14 +305,6 @@ class _CartScreenState extends State<CartScreen> {
                     ),
                   ],
                 ),
-                if (totalDelivery > 0)
-                  Chip(
-                    label: Text(
-                      'Delivery: ${myCurrency.format(totalDelivery)}',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    backgroundColor: Colors.orange[50],
-                  ),
               ],
             ),
             const SizedBox(height: 12),
@@ -347,17 +334,14 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  void _showRemoveStoreDialog(BuildContext context, String premiseCode) {
-    final storeInfo = _cartService.getStoreInfo(premiseCode);
-    final storeName = storeInfo?.storeName ?? 'Unknown Store';
-
+  void _showRemoveStoreDialog(BuildContext context, String premiseCode, String storeName) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Remove Store',
           style: TextStyle(fontWeight: FontWeight.bold),),
         content: Text(
-          'Remove all items from ${_cartService.getStoreInfo(premiseCode)?.storeName}?',
+          'Remove all items from $storeName?',
         ),
         actions: [
           TextButton(
@@ -406,6 +390,44 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
+  void _showChangeAddressDialog() {
+    final addressController = TextEditingController(
+      text: _cartService.userLocation,
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Delivery Address',
+          style: TextStyle(fontWeight: FontWeight.bold),),
+        content: TextField(
+          controller: addressController,
+          decoration: const InputDecoration(
+            hintText: 'Enter your address',
+            border: OutlineInputBorder(),
+          ),
+          maxLines: 3,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold),),
+          ),
+          TextButton(
+            onPressed: () {
+              if (addressController.text.isNotEmpty) {
+                _cartService.setUserLocation(addressController.text);
+                Navigator.pop(context);
+                setState(() {});
+              }
+            },
+            child: const Text('Save', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showCheckoutDialog(BuildContext context, double total) {
     showDialog(
       context: context,
@@ -446,14 +468,51 @@ class _CartScreenState extends State<CartScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Payment processing... '),
-                  duration: Duration(seconds: 2),
-                ),
-              );
+              _processPayment();
             },
             child: const Text('Pay Now', style: TextStyle(fontWeight: FontWeight.bold),),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _processPayment() async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Payment processing... '),
+        duration: Duration(seconds: 2),
+        backgroundColor: Colors.black87,
+      ),
+    );
+
+    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
+
+    await _cartService.saveOrderToHistory();
+    _cartService.clearCart();
+    setState(() {});
+
+    if (!mounted) return;
+    _showOrderPlacedDialog();
+  }
+
+  void _showOrderPlacedDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: const [
+            Icon(Icons.local_shipping, color: Colors.green),
+            SizedBox(width: 8),
+            Text('Order Placed!', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text('Your parcel is on the way!'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),

@@ -6,7 +6,6 @@ class CartItem {
   final double price;
   final String unit;
   final String category;
-  final double distance;
   int quantity;
 
   CartItem({
@@ -17,19 +16,9 @@ class CartItem {
     required this.price,
     required this.unit,
     required this.category,
-    required this.distance,
     required this.quantity,
   });
 
-  double get deliveryFee {
-    if (distance <= 3) {
-      return 0;
-    } else if (distance <= 10) {
-      return 5;
-    } else {
-      return 10;
-    }
-  }
 
   double get itemSubtotal => price * quantity;
 
@@ -52,7 +41,6 @@ class CartItem {
     double? price,
     String? unit,
     String? category,
-    double? distance,
     int? quantity,
   }) {
     return CartItem(
@@ -63,7 +51,6 @@ class CartItem {
       price: price ?? this.price,
       unit: unit ?? this.unit,
       category: category ?? this.category,
-      distance: distance ?? this.distance,
       quantity: quantity ?? this.quantity,
     );
   }

@@ -2,19 +2,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../models/cart.dart';
 import '../models/cart_item.dart';
-
-
-class StoreInfo {
-  final String premiseCode;
-  final String storeName;
-  final double distance;
-
-  StoreInfo({
-    required this.premiseCode,
-    required this.storeName,
-    required this.distance,
-  });
-}
+import '../models/order.dart';
 
 class CartService {
   static final CartService _instance = CartService._internal();
@@ -25,42 +13,17 @@ class CartService {
 
   CartService._internal();
 
-  String _userLocation = 'Klang';
-  double _userLatitude = 3.0455;
-  double _userLongitude = 101.5247;
-
-  static final Map<String, StoreInfo> storeDistances = {
-    'nsk': StoreInfo(
-      premiseCode: 'nsk',
-      storeName: 'NSK',
-      distance: 3.5,
-    ),
-    'aeon': StoreInfo(
-      premiseCode: 'aeon',
-      storeName: 'Aeon',
-      distance: 7.0,
-    ),
-    'lotus': StoreInfo(
-      premiseCode: 'lotus',
-      storeName: 'Lotus',
-      distance: 15.0,
-    ),
-    'giant': StoreInfo(
-      premiseCode: 'giant',
-      storeName: 'Giant',
-      distance: 2.0,
-    ),
-    'hero': StoreInfo(
-      premiseCode: 'hero',
-      storeName: 'Hero',
-      distance: 8.5,
-    ),
-    'tesco': StoreInfo(
-      premiseCode: 'tesco',
-      storeName: 'Tesco',
-      distance: 5.0,
-    ),
+  // Store names mapping (full names)
+  static const Map<String, String> storeNames = {
+    'nsk': 'Noonan Supermarket Klang',
+    'aeon': 'AEON Big Klang',
+    'lotus': 'Lotus\'s Klang',
+    'giant': 'Giant Hypermarket Klang',
+    'hero': 'Hero Market Klang',
+    'tesco': 'Tesco Klang',
   };
+
+  String _userLocation = 'Klang';
 
   String get userLocation => _userLocation;
 
@@ -77,22 +40,11 @@ class CartService {
 
   Cart get cart => _cart;
 
-  double getStoreDistance(String premiseCode) {
-    return storeDistances[premiseCode]?.distance ?? 0;
+  /// Get the full store name
+  String? getStoreName(String premiseCode) {
+    return storeNames[premiseCode];
   }
 
-  StoreInfo? getStoreInfo(String premiseCode) {
-    final normalizedCode = _normalizeCode(premiseCode);
-    return storeDistances[normalizedCode];
-  }
-
-  String _normalizeCode(String code) {
-    if (code == '136') return 'the_store';
-    if (code == '176') return 'lotus';
-    if (code == '183') return 'giant';
-    if (code == '330') return 'tesco';
-    return code;
-  }
   void addToCart({
     required String itemCode,
     required String itemName,
@@ -103,8 +55,6 @@ class CartService {
     required String category,
     int quantity = 1,
   }) {
-    final distance = getStoreDistance(premiseCode);
-
     final cartItem = CartItem(
       itemCode: itemCode,
       itemName: itemName,
@@ -113,7 +63,6 @@ class CartService {
       price: price,
       unit: unit,
       category: category,
-      distance: distance,
       quantity: quantity,
     );
 
@@ -134,6 +83,56 @@ class CartService {
   void clearCart() {
     _cart.clear();
     _saveCart();
+  }
+
+  /// Snapshots the current cart contents as a completed [Order] and saves
+  /// it to the locally persisted order history (most recent first).
+  Future<void> saveOrderToHistory() async {
+    final items = _cart
+        .getAllItems()
+        .map((item) => item.copyWith())
+        .toList();
+
+    if (items.isEmpty) return;
+
+    final order = Order(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      date: DateTime.now(),
+      items: items,
+      total: _cart.getGrandTotal(),
+    );
+
+    final prefs = await SharedPreferences.getInstance();
+    final historyJsonString = prefs.getString('order_history');
+
+    List<dynamic> historyList = [];
+    if (historyJsonString != null) {
+      try {
+        historyList = jsonDecode(historyJsonString) as List<dynamic>;
+      } catch (e) {
+        historyList = [];
+      }
+    }
+
+    historyList.insert(0, order.toJson());
+    await prefs.setString('order_history', jsonEncode(historyList));
+  }
+
+  Future<List<Order>> getOrderHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final historyJsonString = prefs.getString('order_history');
+
+    if (historyJsonString == null) return [];
+
+    try {
+      final historyList = jsonDecode(historyJsonString) as List<dynamic>;
+      return historyList
+          .map((data) => Order.fromJson(data as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      print('Error loading order history: $e');
+      return [];
+    }
   }
 
   Future<void> _saveCart() async {
@@ -174,7 +173,6 @@ class CartService {
           'price': item.price,
           'unit': item.unit,
           'category': item.category,
-          'distance': item.distance,
           'quantity': item.quantity,
         };
       }).toList();
@@ -201,7 +199,6 @@ class CartService {
           price: (itemData['price'] as num).toDouble(),
           unit: itemData['unit'],
           category: itemData['category'],
-          distance: (itemData['distance'] as num).toDouble(),
           quantity: itemData['quantity'],
         );
         _cart.addItem(item);

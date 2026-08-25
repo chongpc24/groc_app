@@ -82,15 +82,8 @@ class Cart {
     return items.fold(0, (sum, item) => sum + item.itemSubtotal);
   }
 
-  double getStoreDeliveryFee(String premiseCode) {
-    final items = getStoreItems(premiseCode);
-    if (items.isEmpty) return 0;
-    return items.first.deliveryFee;
-  }
 
-  double getStoreTotal(String premiseCode) {
-    return getStoreItemsSubtotal(premiseCode) + getStoreDeliveryFee(premiseCode);
-  }
+
 
   double getItemsSubtotal() {
     return _itemsByStore.values.fold(
@@ -99,12 +92,9 @@ class Cart {
     );
   }
 
-  double getTotalDeliveryFee() {
-    return _itemsByStore.keys.fold(0, (sum, premiseCode) => sum + getStoreDeliveryFee(premiseCode));
-  }
 
   double getGrandTotal() {
-    return getItemsSubtotal() + getTotalDeliveryFee();
+    return getItemsSubtotal() ;
   }
 
   bool get isEmpty => _itemsByStore.isEmpty;
