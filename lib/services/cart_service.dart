@@ -52,7 +52,7 @@ class CartService {
       price: price,
       unit: unit,
       category: category,
-
+      distance: 0.0,
       quantity: quantity,
     );
 
@@ -75,7 +75,7 @@ class CartService {
     _saveCartToLocalDatabase();
   }
 
-  // ============= 订单历史 (使用SQLite) =============
+  // ============= 订单历史 (SQLite) =============
 
   /// 保存订单到本地数据库和云端
   Future<void> saveOrderToHistory() async {
@@ -85,13 +85,15 @@ class CartService {
 
     final orderId = 'ORD_${DateTime.now().millisecondsSinceEpoch}';
     final total = _cart.getGrandTotal();
+    final premiseCode = _cart.storeList.isNotEmpty ? _cart.storeList.first : 'unknown';
+    final storeName = items.isNotEmpty ? items.first.storeName : 'Store';
 
     try {
-      // 保存到本地SQLite
+      // 保存主订单到SQLite
       await _dbService.saveOrder({
         'orderId': orderId,
-        'premiseCode': _cart.storeList.isNotEmpty ? _cart.storeList.first : 'unknown',
-        'storeName': items.isNotEmpty ? items.first.storeName : 'Store',
+        'premiseCode': premiseCode,
+        'storeName': storeName,
         'totalAmount': total,
         'itemCount': items.length,
         'deliveryAddress': _userLocation,
@@ -100,32 +102,47 @@ class CartService {
       // 同时保存到Supabase
       try {
         await SupabaseService.saveOrderToSupabase(
-          premiseCode: _cart.storeList.isNotEmpty ? _cart.storeList.first : 'unknown',
-          storeName: items.isNotEmpty ? items.first.storeName : 'Store',
+          premiseCode: premiseCode,
+          storeName: storeName,
           totalAmount: total,
           itemCount: items.length,
           deliveryAddress: _userLocation,
         );
       } catch (e) {
-        // 云端保存失败，但本地已保存
+        // 云端保存失败，本地已保存
       }
     } catch (e) {
       rethrow;
     }
   }
 
-  /// 获取订单历史
+  /// 获取订单历史（带完整信息）
   Future<List<Order>> getOrderHistory() async {
     try {
       final orders = await _dbService.getOrderHistory();
-      return orders.map((orderData) {
-        return Order(
+
+      // 转换为Order对象
+      List<Order> orderList = [];
+      for (final orderData in orders) {
+        final order = Order(
           id: orderData['orderId'],
           date: DateTime.parse(orderData['orderDate']),
-          items: [],
+          items: [], // 稍后可以加载order_items
           total: orderData['totalAmount'],
         );
-      }).toList();
+        // 添加额外信息到Order（需要修改Order模型或创建新模型）
+        orderList.add(order);
+      }
+      return orderList;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// 获取原始订单数据（用于显示）
+  Future<List<Map<String, dynamic>>> getRawOrderHistory() async {
+    try {
+      return await _dbService.getOrderHistory();
     } catch (e) {
       return [];
     }
@@ -202,6 +219,7 @@ class CartService {
           price: itemData['price'],
           unit: '',
           category: '',
+          distance: 0.0,
           quantity: itemData['quantity'],
         );
         _cart.addItem(item);

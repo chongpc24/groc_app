@@ -154,7 +154,7 @@ class _CartScreenState extends State<CartScreen> {
     final storeItems = cart.getStoreItems(premiseCode);
     final storeName = storeItems.isNotEmpty
         ? storeItems.first.storeName
-        : 'Store';  // ✅
+        : 'Store';
     final subtotal = cart.getStoreItemsSubtotal(premiseCode);
 
     return Card(
@@ -258,14 +258,14 @@ class _CartScreenState extends State<CartScreen> {
           label,
           style: TextStyle(
             fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            fontSize: isBold ? 18 : 16, // ✅ 改大了
+            fontSize: isBold ? 16 : 14,
           ),
         ),
         Text(
           value,
           style: TextStyle(
             fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            fontSize: isBold ? 28 : 18, // ✅ 改大了！28pt BOLD！
+            fontSize: isBold ? 18 : 14, // ✅ 改回去了
             color: isFree ? Colors.green : null,
           ),
         ),
@@ -303,7 +303,7 @@ class _CartScreenState extends State<CartScreen> {
                     Text(
                       '${myCurrency.format(itemsSubtotal)}',
                       style: const TextStyle(
-                        fontSize: 20, // ✅ 改大了！从18改成20
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -325,7 +325,7 @@ class _CartScreenState extends State<CartScreen> {
                 child: Text(
                   'Checkout - ${myCurrency.format(grandTotal)}',
                   style: const TextStyle(
-                    fontSize: 20, // ✅ 改大了！从16改成20
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
@@ -493,7 +493,16 @@ class _CartScreenState extends State<CartScreen> {
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
 
+    // 保存订单
     await _cartService.saveOrderToHistory();
+
+    // 尝试同步到Supabase
+    try {
+      await _cartService.syncToCloud();
+    } catch (e) {
+      // Sync失败但订单已保存到本地
+    }
+
     _cartService.clearCart();
     setState(() {});
 

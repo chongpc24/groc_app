@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../models/order.dart';
 import '../../services/cart_service.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
@@ -13,117 +12,227 @@ class OrderHistoryScreen extends StatefulWidget {
 class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   final CartService _cartService = CartService();
   final myCurrency = NumberFormat('MYR #,##0.00', 'ms_MY');
-  late Future<List<Order>> _historyFuture;
 
   @override
   void initState() {
     super.initState();
-    _historyFuture = _cartService.getOrderHistory();
-  }
-
-  Future<void> _refresh() async {
-    setState(() {
-      _historyFuture = _cartService.getOrderHistory();
-    });
+    _cartService.initialize();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Order History')),
-      body: FutureBuilder<List<Order>>(
-        future: _historyFuture,
+      appBar: AppBar(
+        title: const Text('Order History'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _cartService.getRawOrderHistory(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('Error: ${snapshot.error}'),
+            );
           }
 
           final orders = snapshot.data ?? [];
 
           if (orders.isEmpty) {
-            return _buildEmptyState(context);
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.shopping_bag_outlined,
+                    size: 80,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No orders yet',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Start shopping to place your first order',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            );
           }
 
-          return RefreshIndicator(
-            onRefresh: _refresh,
-            child: ListView.separated(
-              padding: const EdgeInsets.all(12),
-              itemCount: orders.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) => _buildOrderCard(orders[index]),
-            ),
+          return ListView.builder(
+            padding: const EdgeInsets.all(12),
+            itemCount: orders.length,
+            itemBuilder: (context, index) {
+              final order = orders[index];
+              return _buildOrderCard(context, order);
+            },
           );
         },
       ),
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.history, size: 80, color: Colors.grey[400]),
-          const SizedBox(height: 16),
-          Text(
-            'No past orders yet',
-            style: Theme.of(context).textTheme.titleLarge,
+  Widget _buildOrderCard(BuildContext context, Map<String, dynamic> order) {
+    final orderId = order['orderId'] as String;
+    final storeName = order['storeName'] as String;
+    final totalAmount = order['totalAmount'] as double;
+    final itemCount = order['itemCount'] as int;
+    final orderDate = DateTime.parse(order['orderDate'] as String);
+    final deliveryAddress = order['deliveryAddress'] as String? ?? 'Unknown';
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ExpansionTile(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Order #${orderId.substring(orderId.length - 8)}',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              storeName,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[700],
+              ),
+            ),
+          ],
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${DateFormat('MMM dd, yyyy').format(orderDate)} • $itemCount items',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Total: ${myCurrency.format(totalAmount)}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Colors.green,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Your completed orders will show up here',
-            style: TextStyle(color: Colors.grey[600]),
+        ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 订单详情
+                _buildOrderDetail('Order ID', orderId),
+                const Divider(height: 16),
+                _buildOrderDetail(
+                  'Date',
+                  DateFormat('MMM dd, yyyy HH:mm').format(orderDate),
+                ),
+                const Divider(height: 16),
+                _buildOrderDetail('Store', storeName),
+                const Divider(height: 16),
+                _buildOrderDetail('Items', '$itemCount'),
+                const Divider(height: 16),
+                _buildOrderDetail(
+                  'Delivery Address',
+                  deliveryAddress,
+                ),
+                const Divider(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Total Amount:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      myCurrency.format(totalAmount),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Colors.green,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                    ),
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Order reordering not implemented yet'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'Reorder',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildOrderCard(Order order) {
-    final dateFormat = DateFormat('d MMM yyyy, h:mm a');
-
-    return Card(
-      child: ExpansionTile(
-        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        leading: const CircleAvatar(
-          backgroundColor: Color(0xFFE8F5E9),
-          child: Icon(Icons.check_circle, color: Colors.green),
+  Widget _buildOrderDetail(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 14,
+          ),
         ),
-        title: Text(
-          order.storeNames.join(', '),
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text(
-          '${dateFormat.format(order.date)} · ${order.totalItemCount} items',
-          style: TextStyle(color: Colors.grey[600], fontSize: 12),
-        ),
-        trailing: Text(
-          myCurrency.format(order.total),
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        children: [
-          const Divider(height: 1),
-          const SizedBox(height: 8),
-          for (final item in order.items)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '${item.itemName} x${item.quantity}',
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                  ),
-                  Text(
-                    myCurrency.format(item.itemSubtotal),
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                ],
-              ),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
             ),
-        ],
-      ),
+          ),
+        ),
+      ],
     );
   }
 }
