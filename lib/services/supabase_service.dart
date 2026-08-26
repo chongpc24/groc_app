@@ -4,8 +4,6 @@ import 'database_service.dart';
 class SupabaseService {
   static const int _pageSize = 1000;
 
-  // ============= PRODUCTS (保持现有功能) =============
-
   static Future<int> syncFromSupabase() async {
     final client = Supabase.instance.client;
     final List<Map<String, dynamic>> localRows = [];
@@ -44,15 +42,12 @@ class SupabaseService {
     return localRows.length;
   }
 
-  // ============= CART OPERATIONS (NEW) =============
 
-  /// 将本地购物车同步到Supabase
   static Future<void> syncCartToSupabase() async {
     final dbService = DatabaseService();
     final client = Supabase.instance.client;
 
     try {
-      // 获取待同步的购物车项目
       final pendingItems = await dbService.getPendingSyncCart();
 
       if (pendingItems.isEmpty) {
@@ -60,14 +55,12 @@ class SupabaseService {
         return;
       }
 
-      // 获取当前用户
       final user = client.auth.currentUser;
       if (user == null) {
         print('❌ User not authenticated');
         return;
       }
 
-      // 同步到Supabase
       for (final item in pendingItems) {
         await client.from('user_carts').upsert({
           'id': item['id'],
@@ -83,7 +76,6 @@ class SupabaseService {
         });
       }
 
-      // 标记为已同步
       await dbService.markCartAsSynced(
         pendingItems.map((e) => e['id'] as int).toList(),
       );
@@ -95,7 +87,6 @@ class SupabaseService {
     }
   }
 
-  /// 从Supabase下载购物车
   static Future<void> syncCartFromSupabase() async {
     final dbService = DatabaseService();
     final client = Supabase.instance.client;
@@ -107,7 +98,6 @@ class SupabaseService {
         return;
       }
 
-      // 从Supabase获取购物车
       final response = await client
           .from('user_carts')
           .select()
@@ -118,14 +108,8 @@ class SupabaseService {
         return;
       }
 
-      // 清空本地购物车（或者合并策略）
-      // 选项1: 覆盖
       await dbService.clearCart();
 
-      // 选项2: 合并（如果需要）
-      // 获取本地购物车，与云端合并
-
-      // 添加云端购物车到本地
       for (final item in response) {
         await dbService.addToCart({
           'itemCode': item['item_code'],
@@ -145,15 +129,12 @@ class SupabaseService {
     }
   }
 
-  /// 双向同步（本地 ↔ Supabase）
   static Future<void> syncCartBothWays() async {
     try {
       print('🔄 Starting bi-directional cart sync...');
 
-      // 先上传本地待同步的
       await syncCartToSupabase();
 
-      // 再下载云端的
       await syncCartFromSupabase();
 
       print('✅ Cart sync completed');
@@ -163,9 +144,6 @@ class SupabaseService {
     }
   }
 
-  // ============= ORDER OPERATIONS (NEW) =============
-
-  /// 保存订单到Supabase
   static Future<String> saveOrderToSupabase({
     required String premiseCode,
     required String storeName,
@@ -181,10 +159,8 @@ class SupabaseService {
     }
 
     try {
-      // 生成订单ID
       final orderId = 'ORD_${DateTime.now().millisecondsSinceEpoch}_${user.id.substring(0, 8)}';
 
-      // 保存到Supabase
       await client.from('orders').insert({
         'order_id': orderId,
         'user_id': user.id,
@@ -205,7 +181,6 @@ class SupabaseService {
     }
   }
 
-  /// 从Supabase获取订单历史
   static Future<List<Map<String, dynamic>>> getOrdersFromSupabase() async {
     final client = Supabase.instance.client;
     final user = client.auth.currentUser;
@@ -228,7 +203,6 @@ class SupabaseService {
     }
   }
 
-  /// 同步订单到Supabase
   static Future<void> syncOrdersToSupabase() async {
     final dbService = DatabaseService();
     final client = Supabase.instance.client;

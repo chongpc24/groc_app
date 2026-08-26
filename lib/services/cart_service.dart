@@ -32,8 +32,6 @@ class CartService {
 
   Cart get cart => _cart;
 
-  // ============= 购物车操作 =============
-
   void addToCart({
     required String itemCode,
     required String itemName,
@@ -52,7 +50,6 @@ class CartService {
       price: price,
       unit: unit,
       category: category,
-      distance: 0.0,
       quantity: quantity,
     );
 
@@ -75,9 +72,6 @@ class CartService {
     _saveCartToLocalDatabase();
   }
 
-  // ============= 订单历史 (SQLite) =============
-
-  /// 保存订单到本地数据库和云端
   Future<void> saveOrderToHistory() async {
     final items = _cart.getAllItems().map((item) => item.copyWith()).toList();
 
@@ -89,7 +83,6 @@ class CartService {
     final storeName = items.isNotEmpty ? items.first.storeName : 'Store';
 
     try {
-      // 保存主订单到SQLite
       await _dbService.saveOrder({
         'orderId': orderId,
         'premiseCode': premiseCode,
@@ -99,7 +92,6 @@ class CartService {
         'deliveryAddress': _userLocation,
       });
 
-      // 同时保存到Supabase
       try {
         await SupabaseService.saveOrderToSupabase(
           premiseCode: premiseCode,
@@ -109,28 +101,24 @@ class CartService {
           deliveryAddress: _userLocation,
         );
       } catch (e) {
-        // 云端保存失败，本地已保存
       }
     } catch (e) {
       rethrow;
     }
   }
 
-  /// 获取订单历史（带完整信息）
   Future<List<Order>> getOrderHistory() async {
     try {
       final orders = await _dbService.getOrderHistory();
 
-      // 转换为Order对象
       List<Order> orderList = [];
       for (final orderData in orders) {
         final order = Order(
           id: orderData['orderId'],
           date: DateTime.parse(orderData['orderDate']),
-          items: [], // 稍后可以加载order_items
+          items: [],
           total: orderData['totalAmount'],
         );
-        // 添加额外信息到Order（需要修改Order模型或创建新模型）
         orderList.add(order);
       }
       return orderList;
@@ -139,7 +127,6 @@ class CartService {
     }
   }
 
-  /// 获取原始订单数据（用于显示）
   Future<List<Map<String, dynamic>>> getRawOrderHistory() async {
     try {
       return await _dbService.getOrderHistory();
@@ -148,9 +135,6 @@ class CartService {
     }
   }
 
-  // ============= 同步操作 =============
-
-  /// 同步购物车到Supabase
   Future<void> syncToCloud() async {
     try {
       await SupabaseService.syncCartToSupabase();
@@ -159,7 +143,6 @@ class CartService {
     }
   }
 
-  /// 从Supabase下载购物车
   Future<void> syncFromCloud() async {
     try {
       await SupabaseService.syncCartFromSupabase();
@@ -169,7 +152,6 @@ class CartService {
     }
   }
 
-  /// 双向同步
   Future<void> syncBothWays() async {
     try {
       await SupabaseService.syncCartBothWays();
@@ -179,9 +161,6 @@ class CartService {
     }
   }
 
-  // ============= 本地数据库操作 =============
-
-  /// 保存购物车到本地SQLite
   Future<void> _saveCartToLocalDatabase() async {
     try {
       await _dbService.clearCart();
@@ -200,11 +179,9 @@ class CartService {
         }
       }
     } catch (e) {
-      // 错误处理
     }
   }
 
-  /// 从本地SQLite加载购物车
   Future<void> _loadCartFromLocalDatabase() async {
     try {
       _cart = Cart();
@@ -219,7 +196,6 @@ class CartService {
           price: itemData['price'],
           unit: '',
           category: '',
-          distance: 0.0,
           quantity: itemData['quantity'],
         );
         _cart.addItem(item);

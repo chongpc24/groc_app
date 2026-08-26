@@ -493,14 +493,11 @@ class _CartScreenState extends State<CartScreen> {
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
 
-    // 保存订单
     await _cartService.saveOrderToHistory();
 
-    // 尝试同步到Supabase
     try {
       await _cartService.syncToCloud();
     } catch (e) {
-      // Sync失败但订单已保存到本地
     }
 
     _cartService.clearCart();

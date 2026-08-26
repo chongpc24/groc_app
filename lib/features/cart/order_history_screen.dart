@@ -86,7 +86,6 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
 
   Widget _buildOrderCard(BuildContext context, Map<String, dynamic> order) {
     final orderId = order['orderId'] as String;
-    final storeName = order['storeName'] as String;
     final totalAmount = order['totalAmount'] as double;
     final itemCount = order['itemCount'] as int;
     final orderDate = DateTime.parse(order['orderDate'] as String);
@@ -103,14 +102,6 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              storeName,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[700],
               ),
             ),
           ],
@@ -145,23 +136,29 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 订单详情
+                // Order ID
                 _buildOrderDetail('Order ID', orderId),
                 const Divider(height: 16),
+
+                // Date
                 _buildOrderDetail(
                   'Date',
                   DateFormat('MMM dd, yyyy HH:mm').format(orderDate),
                 ),
                 const Divider(height: 16),
-                _buildOrderDetail('Store', storeName),
-                const Divider(height: 16),
+
+                // Items Count
                 _buildOrderDetail('Items', '$itemCount'),
                 const Divider(height: 16),
+
+                // Delivery Address
                 _buildOrderDetail(
                   'Delivery Address',
                   deliveryAddress,
                 ),
                 const Divider(height: 16),
+
+                // Total Amount
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -181,27 +178,6 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                    ),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Order reordering not implemented yet'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    },
-                    child: const Text(
-                      'Reorder',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
                 ),
               ],
             ),
