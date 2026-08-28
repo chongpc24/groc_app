@@ -74,7 +74,7 @@ class CartItemTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${myCurrency.format(itemTotal)}',
+                myCurrency.format(itemTotal),
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,

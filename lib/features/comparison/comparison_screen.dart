@@ -221,7 +221,7 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                           color: Colors.pinkAccent,
                           barWidth: 3,
                           dotData: const FlDotData(show: false),
-                          belowBarData: BarAreaData(show: true, color: Colors.pinkAccent.withOpacity(0.15)),
+                          belowBarData: BarAreaData(show: true, color: Colors.pinkAccent.withValues(alpha: 0.15)),
                         ),
                       ],
                     ),

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../models/cart.dart';
-import '../../models/cart_item.dart';
 import '../../services/cart_service.dart';
 import 'cart_item_tile.dart';
 import 'order_history_screen.dart';
@@ -192,7 +190,7 @@ class _CartScreenState extends State<CartScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: storeItems.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            separatorBuilder: (_, _) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final item = storeItems[index];
               return CartItemTile(
@@ -223,7 +221,7 @@ class _CartScreenState extends State<CartScreen> {
               children: [
                 _buildSummaryRow(
                   'Subtotal:',
-                  '${myCurrency.format(subtotal)}',
+                  myCurrency.format(subtotal),
                 ),
                 const SizedBox(height: 4),
                 _buildSummaryRow(
@@ -234,7 +232,7 @@ class _CartScreenState extends State<CartScreen> {
                 const Divider(height: 12),
                 _buildSummaryRow(
                   'Store Total:',
-                  '${myCurrency.format(subtotal)}',
+                  myCurrency.format(subtotal),
                   isBold: true,
                 ),
               ],
@@ -301,7 +299,7 @@ class _CartScreenState extends State<CartScreen> {
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                     Text(
-                      '${myCurrency.format(itemsSubtotal)}',
+                      myCurrency.format(itemsSubtotal),
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -449,7 +447,7 @@ class _CartScreenState extends State<CartScreen> {
               children: [
                 const Text('Total Amount:'),
                 Text(
-                  '${myCurrency.format(total)}',
+                  myCurrency.format(total),
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,

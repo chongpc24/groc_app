@@ -2,7 +2,7 @@ import 'cart_item.dart';
 
 class Cart {
 
-  Map<String, List<CartItem>> _itemsByStore = {};
+  final Map<String, List<CartItem>> _itemsByStore = {};
 
   Cart();
 

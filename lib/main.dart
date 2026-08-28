@@ -1,9 +1,10 @@
+//main.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'features/search/explore_screen.dart';
 import 'models/product.dart';
-import 'features/cart/cart_screen.dart';
+import 'features/store/store_page.dart';
 
 // TODO: replace with your own project's values from
 const String supabaseUrl = 'https://ztyngqmkgddgjkmrwsjk.supabase.co';
@@ -125,7 +126,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
   final List<Widget> _tabs = const [
     ExploreScreen(),
-    _PlaceholderTab(label: 'Grocer'),
+    StorePage(),
     _PlaceholderTab(label: 'List'),
     _PlaceholderTab(label: 'Account'),
   ];
