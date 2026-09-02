@@ -287,6 +287,7 @@ class _ShoppingListScreenState
           AlertDialog(
             title: const Text(
               'Delete selected lists?',
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
             content: Text(
               'Delete $count selected shopping list${count == 1 ? '' : 's'} and all items inside?',
@@ -371,6 +372,7 @@ class _ShoppingListScreenState
           AlertDialog(
             title: const Text(
               'Clear all shopping lists?',
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
             content: const Text(
               'This will delete every shopping list and every item saved inside them.',
@@ -457,6 +459,7 @@ class _ShoppingListScreenState
           AlertDialog(
             title: const Text(
               'Delete shopping list?',
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
             content: Text(
               'Delete "${list.name}" and all items inside it?',
@@ -523,7 +526,10 @@ class _ShoppingListScreenState
       context: context,
       builder: (dialogContext) =>
           AlertDialog(
-            title: Text(title),
+            title: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
             content: TextFormField(
               initialValue:
               initialValue,

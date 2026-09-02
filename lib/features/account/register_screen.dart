@@ -93,6 +93,7 @@ class _RegisterScreenState
           builder: (dialogContext) => AlertDialog(
             title: const Text(
               'Registration submitted',
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
             content: Text(
               'An account was created for ${_emailController.text.trim()}. Please verify the email, then return to Login.',

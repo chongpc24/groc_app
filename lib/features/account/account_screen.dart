@@ -492,7 +492,10 @@ class _AccountScreenState
       context: context,
       builder: (dialogContext) =>
           AlertDialog(
-            title: const Text('Help'),
+            title: const Text(
+              'Help',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             content: const Text(
               'Use Explore to compare grocery prices, Grocer to find nearby stores, List to manage saved shopping lists, and My Details to view or edit your personal information and address.',
             ),

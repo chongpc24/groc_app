@@ -63,8 +63,44 @@ const Map<String, String> _itemKeywordMap = {
   'NESTLE': 'assets/images/items/nestle.jpg',
   'NESCAFE': 'assets/images/items/nescafe.jpg',
   'QUAKER': 'assets/images/items/quaker.jpg',
-  'IKAN': 'assets/images/items/ikan.jpg',
   'KETAM': 'assets/images/items/ketam.jpg',
+  'NENAS': 'assets/images/items/nenas.jpg',
+};
+
+const Map<String, String> _genericItemKeywordMap = {
+  'AYAM': 'assets/images/ayam.jpg',
+  'BAWANG': 'assets/images/bawang.jpg',
+  'IKAN': 'assets/images/ikan.jpg',
+  'CILI': 'assets/images/cili.jpg',
+  'DAGING': 'assets/images/daging.jpg',
+  'KACANG': 'assets/images/kacang.jpg',
+  'TELUR': 'assets/images/telur.jpg',
+  'TEPUNG': 'assets/images/tepung.jpg',
+  'BERAS': 'assets/images/beras.jpg',
+  'BIHUN': 'assets/images/bihun.jpg',
+  'MEE': 'assets/images/mee.jpg',
+  'MI SEGERA': 'assets/images/mi_segera.jpg',
+  'SANTAN': 'assets/images/santan.jpg',
+  'KELAPA': 'assets/images/kelapa.jpg',
+  'KENTANG': 'assets/images/kentang.jpg',
+  'GULA': 'assets/images/gula.jpg',
+  'MENTEGA': 'assets/images/mentega.jpg',
+  'SUSU': 'assets/images/susu_tepung.jpg',
+  'TAUHU': 'assets/images/tauhu.jpg',
+  'ROTI': 'assets/images/roti.jpg',
+  'SABUN': 'assets/images/sabun.jpg',
+  'SYAMPU': 'assets/images/syampu.jpg',
+  'TISU': 'assets/images/tisu.jpg',
+  'UBAT': 'assets/images/ubat.jpg',
+  'MINYAK': 'assets/images/minyak.jpg',
+  'SOS': 'assets/images/kicap_sos.jpg',
+  'KICAP': 'assets/images/kicap_sos.jpg',
+  'SAYUR': 'assets/images/sayur.jpg',
+  'BUAH': 'assets/images/buah.jpg',
+  'BISKUT': 'assets/images/biskut.jpg',
+  'COKLAT': 'assets/images/coklat.jpg',
+  'SNACK': 'assets/images/snacks.jpg',
+  'MINUMAN': 'assets/images/minuman.jpg',
 };
 
 const Map<String, String> _categoryMap = {
@@ -74,8 +110,10 @@ const Map<String, String> _categoryMap = {
   'BAWANG': 'assets/images/bawang.jpg',
   'BERAS': 'assets/images/beras.jpg',
   'BIHUN': 'assets/images/bihun.jpg',
+  'BISKUT': 'assets/images/biskut.jpg',
   'BUAH-BUAHAN': 'assets/images/buah.jpg',
   'CILI KERING': 'assets/images/cili.jpg',
+  'COKLAT': 'assets/images/coklat.jpg',
   'DAGING': 'assets/images/daging.jpg',
   'ESEN DAN RAGI': 'assets/images/esen_ragi.jpg',
   'GULA': 'assets/images/gula.jpg',
@@ -113,6 +151,14 @@ _itemKeywordMap.keys.toList()
     ),
   );
 
+final List<String> _sortedGenericKeywords =
+_genericItemKeywordMap.keys.toList()
+  ..sort(
+        (a, b) => b.length.compareTo(
+      a.length,
+    ),
+  );
+
 String imagePathForCategory(
     String category,
     ) {
@@ -137,9 +183,23 @@ String imagePathForProduct(
     }
   }
 
-  return imagePathForCategory(
-    category,
-  );
+  for (final keyword
+  in _sortedGenericKeywords) {
+    if (upperName.contains(keyword)) {
+      return _genericItemKeywordMap[
+      keyword]!;
+    }
+  }
+
+  final categoryPath =
+  imagePathForCategory(category);
+
+  if (categoryPath !=
+      'assets/images/grocery.png') {
+    return categoryPath;
+  }
+
+  return 'assets/images/grocery.png';
 }
 
 class ProductIconTile
