@@ -1,7 +1,3 @@
-//matchers.dart
-//Known Malaysian grocery chains used to group Overpass results into
-// filter chips (e.g. many stores are named "99 Speedmart Puchong Utama",
-// we just want the "99 Speedmart" chip).
 const List<String> knownBrands = [
   'AEON BiG',
   'AEON',
@@ -18,44 +14,108 @@ const List<String> knownBrands = [
 ];
 
 class BrandMatcher {
-  /// Returns the known brand contained in [storeName], or the
-  /// original name (trimmed) if no known brand matches.
-  static String brandOf(String storeName) {
-    final lower = storeName.toLowerCase();
-    for (final brand in knownBrands) {
-      if (lower.contains(brand.toLowerCase())) return brand;
+  static String brandOf(
+      String storeName,
+      ) {
+    final lower =
+    storeName.toLowerCase();
+
+    for (final brand
+    in knownBrands) {
+      if (lower.contains(
+        brand.toLowerCase(),
+      )) {
+        return brand;
+      }
     }
-    return storeName;
+
+    return storeName.trim();
   }
 }
 
 class NameMatcher {
-  /// Normalizes a store name for comparison: uppercase, strip
-  /// punctuation, collapse whitespace.
-  static String _normalize(String input) {
+  static String _normalize(
+      String input,
+      ) {
     return input
         .toUpperCase()
-        .replaceAll(RegExp(r"[^A-Z0-9 ]"), ' ')
-        .replaceAll(RegExp(r'\s+'), ' ')
+        .replaceAll(
+      RegExp(r'[^A-Z0-9 ]'),
+      ' ',
+    )
+        .replaceAll(
+      RegExp(r'\s+'),
+      ' ',
+    )
         .trim();
   }
 
-  /// Returns a similarity score between 0.0 and 1.0 based on
-  /// shared words between the two names.
-  static double _similarity(String a, String b) {
-    final wordsA = _normalize(a).split(' ').toSet();
-    final wordsB = _normalize(b).split(' ').toSet();
+  static Set<String> _words(
+      String input,
+      ) {
+    final normalized =
+    _normalize(input);
 
-    if (wordsA.isEmpty || wordsB.isEmpty) return 0.0;
+    if (normalized.isEmpty) {
+      return {};
+    }
 
-    final shared = wordsA.intersection(wordsB).length;
-    final union = wordsA.union(wordsB).length;
-
-    return shared / union; // Jaccard similarity
+    return normalized
+        .split(' ')
+        .where(
+          (word) =>
+      word.trim().isNotEmpty,
+    )
+        .toSet();
   }
 
-  /// Finds the best-matching premise for [osmName] from [candidates].
-  /// Returns null if nothing scores above [threshold].
+  static double _similarity(
+      String a,
+      String b,
+      ) {
+    final wordsA = _words(a);
+    final wordsB = _words(b);
+
+    if (wordsA.isEmpty ||
+        wordsB.isEmpty) {
+      return 0;
+    }
+
+    final shared =
+        wordsA.intersection(
+          wordsB,
+        ).length;
+
+    final union =
+        wordsA.union(
+          wordsB,
+        ).length;
+
+    var score =
+        shared / union;
+
+    final normalizedA =
+    _normalize(a);
+
+    final normalizedB =
+    _normalize(b);
+
+    if (normalizedA.isNotEmpty &&
+        normalizedB.isNotEmpty &&
+        (normalizedA.contains(
+          normalizedB,
+        ) ||
+            normalizedB.contains(
+              normalizedA,
+            ))) {
+      if (score < 0.65) {
+        score = 0.65;
+      }
+    }
+
+    return score;
+  }
+
   static T? bestMatch<T>(
       String osmName,
       List<T> candidates,
@@ -63,16 +123,72 @@ class NameMatcher {
         double threshold = 0.4,
       }) {
     T? best;
-    double bestScore = 0.0;
+    var bestScore = 0.0;
 
-    for (final c in candidates) {
-      final score = _similarity(osmName, nameOf(c));
+    for (final candidate
+    in candidates) {
+      final score =
+      _similarity(
+        osmName,
+        nameOf(candidate),
+      );
+
       if (score > bestScore) {
         bestScore = score;
-        best = c;
+        best = candidate;
       }
     }
 
-    return bestScore >= threshold ? best : null;
+    return bestScore >= threshold
+        ? best
+        : null;
+  }
+
+  static T? bestMatchWithLocation<T>({
+    required String osmName,
+    required String locationHint,
+    required List<T> candidates,
+    required String Function(T) nameOf,
+    required String Function(T)
+    locationOf,
+    double minimumNameScore = 0.22,
+  }) {
+    T? best;
+    var bestCombinedScore = 0.0;
+
+    for (final candidate
+    in candidates) {
+      final nameScore =
+      _similarity(
+        osmName,
+        nameOf(candidate),
+      );
+
+      if (nameScore <
+          minimumNameScore) {
+        continue;
+      }
+
+      final locationScore =
+      locationHint.trim().isEmpty
+          ? 0.0
+          : _similarity(
+        locationHint,
+        locationOf(candidate),
+      );
+
+      final combinedScore =
+          (nameScore * 0.78) +
+              (locationScore * 0.22);
+
+      if (combinedScore >
+          bestCombinedScore) {
+        bestCombinedScore =
+            combinedScore;
+        best = candidate;
+      }
+    }
+
+    return best;
   }
 }

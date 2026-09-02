@@ -64,7 +64,7 @@ const Map<String, String> _itemKeywordMap = {
   'NESCAFE': 'assets/images/items/nescafe.jpg',
   'QUAKER': 'assets/images/items/quaker.jpg',
   'IKAN': 'assets/images/items/ikan.jpg',
-  'KETAM': 'assets/images/items/ikan.jpg',
+  'KETAM': 'assets/images/items/ketam.jpg',
 };
 
 const Map<String, String> _categoryMap = {
@@ -105,29 +105,47 @@ const Map<String, String> _categoryMap = {
   'UBI KENTANG': 'assets/images/kentang.jpg',
 };
 
-final List<String> _sortedItemKeywords = _itemKeywordMap.keys.toList()
-  ..sort((a, b) => b.length.compareTo(a.length)); // longest/most specific first
+final List<String> _sortedItemKeywords =
+_itemKeywordMap.keys.toList()
+  ..sort(
+        (a, b) => b.length.compareTo(
+      a.length,
+    ),
+  );
 
-String imagePathForCategory(String category) {
-  return _categoryMap[category] ?? 'assets/images/grocery.jpg';
+String imagePathForCategory(
+    String category,
+    ) {
+  final clean =
+  category.trim().toUpperCase();
+
+  return _categoryMap[clean] ??
+      'assets/images/grocery.png';
 }
 
-String imagePathForProduct(String itemName, String category) {
-  final upperName = itemName.toUpperCase();
+String imagePathForProduct(
+    String itemName,
+    String category,
+    ) {
+  final upperName =
+  itemName.toUpperCase();
 
-  for (final keyword in _sortedItemKeywords) {
+  for (final keyword
+  in _sortedItemKeywords) {
     if (upperName.contains(keyword)) {
       return _itemKeywordMap[keyword]!;
     }
   }
 
-  return imagePathForCategory(category);
+  return imagePathForCategory(
+    category,
+  );
 }
 
-class ProductIconTile extends StatelessWidget {
+class ProductIconTile
+    extends StatelessWidget {
   final String itemName;
   final String category;
-
   final bool isCategoryTile;
 
   const ProductIconTile({
@@ -141,13 +159,25 @@ class ProductIconTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final path = isCategoryTile
         ? imagePathForCategory(category)
-        : imagePathForProduct(itemName, category);
+        : imagePathForProduct(
+      itemName,
+      category,
+    );
+
     return Image.asset(
       path,
       width: double.infinity,
+      height: double.infinity,
       fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) =>
-          Image.asset(imagePathForCategory(category), fit: BoxFit.cover),
+      errorBuilder:
+          (context, error, stackTrace) {
+        return Image.asset(
+          'assets/images/grocery.png',
+          width: double.infinity,
+          height: double.infinity,
+          fit: BoxFit.cover,
+        );
+      },
     );
   }
 }

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import '../../models/cart_item.dart';
+import '../search/product_icon_tile.dart';
 
 class CartItemTile extends StatelessWidget {
   final CartItem item;
-  final Function(int) onQuantityChanged;
+  final ValueChanged<int> onQuantityChanged;
   final VoidCallback onRemove;
 
   const CartItemTile({
@@ -16,67 +18,84 @@ class CartItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final myCurrency = NumberFormat('MYR #,##0.00', 'ms_MY');
-    final itemTotal = item.itemSubtotal;
+    final myCurrency =
+    NumberFormat(
+      'MYR #,##0.00',
+      'ms_MY',
+    );
+
+    final itemTotal =
+        item.itemSubtotal;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 8,
+      ),
       child: Row(
         children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              Icons.shopping_bag_outlined,
-              color: Colors.green[300],
+          ClipRRect(
+            borderRadius:
+            BorderRadius.circular(8),
+            child: SizedBox(
+              width: 60,
+              height: 60,
+              child: ProductIconTile(
+                itemName: item.itemName,
+                category: item.category,
+              ),
             ),
           ),
           const SizedBox(width: 12),
-
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+              CrossAxisAlignment.start,
               children: [
                 Text(
                   item.itemName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                  overflow:
+                  TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
+                    fontWeight:
+                    FontWeight.bold,
                     fontSize: 14,
                   ),
                 ),
-                Text(
-                  item.unit,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
+                if (item.unit.trim().isNotEmpty)
+                  Text(
+                    item.unit,
+                    style: TextStyle(
+                      color:
+                      Colors.grey[600],
+                      fontSize: 12,
+                    ),
                   ),
-                ),
                 const SizedBox(height: 4),
                 Text(
                   '${myCurrency.format(item.price)} each',
                   style: const TextStyle(
                     color: Colors.green,
-                    fontWeight: FontWeight.w600,
+                    fontWeight:
+                    FontWeight.w600,
                     fontSize: 12,
                   ),
                 ),
               ],
             ),
           ),
-
           Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment:
+            CrossAxisAlignment.end,
             children: [
               Text(
-                myCurrency.format(itemTotal),
+                myCurrency.format(
+                  itemTotal,
+                ),
                 style: const TextStyle(
-                  fontWeight: FontWeight.bold,
+                  fontWeight:
+                  FontWeight.bold,
                   fontSize: 14,
                 ),
               ),
@@ -85,7 +104,10 @@ class CartItemTile extends StatelessWidget {
             ],
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            icon: const Icon(
+              Icons.delete_outline,
+              color: Colors.red,
+            ),
             onPressed: onRemove,
           ),
         ],
@@ -96,42 +118,60 @@ class CartItemTile extends StatelessWidget {
   Widget _buildQuantityControl() {
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: Colors.grey[300]!,
+        ),
+        borderRadius:
+        BorderRadius.circular(6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          GestureDetector(
+          InkWell(
             onTap: item.quantity > 1
-                ? () => onQuantityChanged(item.quantity - 1)
+                ? () {
+              onQuantityChanged(
+                item.quantity - 1,
+              );
+            }
                 : null,
-            child: Container(
+            child: SizedBox(
               width: 28,
               height: 28,
-              alignment: Alignment.center,
               child: Icon(
                 Icons.remove,
                 size: 16,
-                color: item.quantity > 1 ? Colors.black : Colors.grey[400],
+                color: item.quantity > 1
+                    ? Colors.black
+                    : Colors.grey[400],
               ),
             ),
           ),
-          Container(
+          SizedBox(
             width: 32,
-            alignment: Alignment.center,
-            child: Text(
-              item.quantity.toString(),
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            child: Center(
+              child: Text(
+                item.quantity.toString(),
+                style: const TextStyle(
+                  fontWeight:
+                  FontWeight.bold,
+                ),
+              ),
             ),
           ),
-          GestureDetector(
-            onTap: () => onQuantityChanged(item.quantity + 1),
-            child: Container(
+          InkWell(
+            onTap: () {
+              onQuantityChanged(
+                item.quantity + 1,
+              );
+            },
+            child: const SizedBox(
               width: 28,
               height: 28,
-              alignment: Alignment.center,
-              child: const Icon(Icons.add, size: 16),
+              child: Icon(
+                Icons.add,
+                size: 16,
+              ),
             ),
           ),
         ],

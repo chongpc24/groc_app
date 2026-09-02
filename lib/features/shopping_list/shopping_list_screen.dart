@@ -21,11 +21,16 @@ class ShoppingListScreen extends StatefulWidget {
 class _ShoppingListScreenState
     extends State<ShoppingListScreen> {
   StreamSubscription<AuthState>? _subscription;
+
   List<ShoppingListSummary> _lists = [];
+  final Set<String> _selectedIds = {};
+
   bool _loading = false;
+  bool _selectionMode = false;
   String? _error;
 
-  final _currency = NumberFormat.currency(
+  final NumberFormat _currency =
+  NumberFormat.currency(
     locale: 'ms_MY',
     symbol: 'RM ',
   );
@@ -35,11 +40,13 @@ class _ShoppingListScreenState
     super.initState();
 
     _subscription =
-        AuthService.instance.authStateChanges.listen((_) {
-          if (mounted) {
-            _load();
-          }
-        });
+        AuthService.instance.authStateChanges.listen(
+              (_) {
+            if (mounted) {
+              _load();
+            }
+          },
+        );
 
     _load();
   }
@@ -55,6 +62,8 @@ class _ShoppingListScreenState
       if (mounted) {
         setState(() {
           _lists = [];
+          _selectedIds.clear();
+          _selectionMode = false;
           _loading = false;
           _error = null;
         });
@@ -71,11 +80,22 @@ class _ShoppingListScreenState
 
     try {
       final lists =
-      await ShoppingListService.instance.loadLists();
+      await ShoppingListService.instance
+          .loadLists();
 
       if (mounted) {
         setState(() {
           _lists = lists;
+
+          _selectedIds.removeWhere(
+                (id) => !_lists.any(
+                  (list) => list.id == id,
+            ),
+          );
+
+          if (_selectedIds.isEmpty) {
+            _selectionMode = false;
+          }
         });
       }
     } catch (error) {
@@ -94,10 +114,12 @@ class _ShoppingListScreenState
   }
 
   Future<void> _login() async {
-    final loggedIn = await Navigator.push<bool>(
+    final loggedIn =
+    await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (_) => const LoginScreen(),
+        builder: (_) =>
+        const LoginScreen(),
       ),
     );
 
@@ -112,7 +134,7 @@ class _ShoppingListScreenState
 
   Future<void> _createList() async {
     final name = await _askForName(
-      title: 'New List',
+      title: 'New Shopping List',
       initialValue: '',
       buttonText: 'Create',
     );
@@ -122,9 +144,8 @@ class _ShoppingListScreenState
     }
 
     try {
-      await ShoppingListService.instance.createList(
-        name,
-      );
+      await ShoppingListService.instance
+          .createList(name);
 
       await _load();
 
@@ -179,7 +200,8 @@ class _ShoppingListScreenState
     }
 
     try {
-      await ShoppingListService.instance.renameList(
+      await ShoppingListService.instance
+          .renameList(
         list.id,
         name,
       );
@@ -200,42 +222,185 @@ class _ShoppingListScreenState
     }
   }
 
-  Future<void> _deleteList(
-      ShoppingListSummary list,
-      ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text(
-          'Delete shopping list?',
-        ),
-        content: Text(
-          'Delete "${list.name}" and all items inside it?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(
-                dialogContext,
-                false,
-              );
-            },
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(
-                dialogContext,
-                true,
-              );
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
+  void _startSelection(
+      String id,
+      ) {
+    setState(() {
+      _selectionMode = true;
+      _selectedIds.add(id);
+    });
+  }
+
+  void _toggleSelection(
+      String id,
+      ) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+
+      _selectionMode =
+          _selectedIds.isNotEmpty;
+    });
+  }
+
+  void _cancelSelection() {
+    setState(() {
+      _selectedIds.clear();
+      _selectionMode = false;
+    });
+  }
+
+  void _selectAll() {
+    setState(() {
+      if (_selectedIds.length ==
+          _lists.length) {
+        _selectedIds.clear();
+        _selectionMode = false;
+      } else {
+        _selectionMode = true;
+        _selectedIds
+          ..clear()
+          ..addAll(
+            _lists.map(
+                  (list) => list.id,
             ),
-            child: const Text('Delete'),
+          );
+      }
+    });
+  }
+
+  Future<void> _deleteSelected() async {
+    if (_selectedIds.isEmpty) {
+      return;
+    }
+
+    final count =
+        _selectedIds.length;
+
+    final confirmed =
+    await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) =>
+          AlertDialog(
+            title: const Text(
+              'Delete selected lists?',
+            ),
+            content: Text(
+              'Delete $count selected shopping list${count == 1 ? '' : 's'} and all items inside?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(
+                    dialogContext,
+                    false,
+                  );
+                },
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(
+                    dialogContext,
+                    true,
+                  );
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red,
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-        ],
-      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    final ids =
+    _selectedIds.toList();
+
+    try {
+      for (final id in ids) {
+        await ShoppingListService.instance
+            .deleteList(id);
+      }
+
+      _cancelSelection();
+      await _load();
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '$count list${count == 1 ? '' : 's'} deleted.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Unable to delete selected lists: $error',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _clearAllLists() async {
+    if (_lists.isEmpty) {
+      return;
+    }
+
+    final confirmed =
+    await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) =>
+          AlertDialog(
+            title: const Text(
+              'Clear all shopping lists?',
+            ),
+            content: const Text(
+              'This will delete every shopping list and every item saved inside them.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(
+                    dialogContext,
+                    false,
+                  );
+                },
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(
+                    dialogContext,
+                    true,
+                  );
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red,
+                ),
+                child: const Text(
+                  'Clear All',
+                ),
+              ),
+            ],
+          ),
     );
 
     if (confirmed != true) {
@@ -243,9 +408,92 @@ class _ShoppingListScreenState
     }
 
     try {
-      await ShoppingListService.instance.deleteList(
-        list.id,
+      final ids =
+      _lists.map(
+            (list) => list.id,
+      ).toList();
+
+      for (final id in ids) {
+        await ShoppingListService.instance
+            .deleteList(id);
+      }
+
+      _cancelSelection();
+      await _load();
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'All shopping lists cleared.',
+          ),
+        ),
       );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Unable to clear lists: $error',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _deleteSingleList(
+      ShoppingListSummary list,
+      ) async {
+    final confirmed =
+    await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) =>
+          AlertDialog(
+            title: const Text(
+              'Delete shopping list?',
+            ),
+            content: Text(
+              'Delete "${list.name}" and all items inside it?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(
+                    dialogContext,
+                    false,
+                  );
+                },
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(
+                    dialogContext,
+                    true,
+                  );
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red,
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    try {
+      await ShoppingListService.instance
+          .deleteList(list.id);
 
       await _load();
     } catch (error) {
@@ -268,58 +516,68 @@ class _ShoppingListScreenState
     required String initialValue,
     required String buttonText,
   }) {
-    String draftName = initialValue;
+    String draftName =
+        initialValue;
 
     return showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(title),
-        content: TextFormField(
-          initialValue: initialValue,
-          autofocus: true,
-          maxLength: 80,
-          textCapitalization:
-          TextCapitalization.words,
-          decoration: const InputDecoration(
-            labelText: 'List name',
-            hintText: 'e.g. Weekly Groceries',
-          ),
-          onChanged: (value) {
-            draftName = value;
-          },
-          onFieldSubmitted: (value) {
-            final clean = value.trim();
+      builder: (dialogContext) =>
+          AlertDialog(
+            title: Text(title),
+            content: TextFormField(
+              initialValue:
+              initialValue,
+              autofocus: true,
+              maxLength: 80,
+              textCapitalization:
+              TextCapitalization.words,
+              decoration:
+              const InputDecoration(
+                labelText: 'List name',
+                hintText:
+                'e.g. Weekly Groceries',
+              ),
+              onChanged: (value) {
+                draftName = value;
+              },
+              onFieldSubmitted:
+                  (value) {
+                final clean =
+                value.trim();
 
-            if (clean.isNotEmpty) {
-              Navigator.pop(
-                dialogContext,
-                clean,
-              );
-            }
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-            },
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final clean = draftName.trim();
+                if (clean.isNotEmpty) {
+                  Navigator.pop(
+                    dialogContext,
+                    clean,
+                  );
+                }
+              },
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(
+                    dialogContext,
+                  );
+                },
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  final clean =
+                  draftName.trim();
 
-              if (clean.isNotEmpty) {
-                Navigator.pop(
-                  dialogContext,
-                  clean,
-                );
-              }
-            },
-            child: Text(buttonText),
+                  if (clean.isNotEmpty) {
+                    Navigator.pop(
+                      dialogContext,
+                      clean,
+                    );
+                  }
+                },
+                child: Text(buttonText),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -331,15 +589,83 @@ class _ShoppingListScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'My Shopping Lists',
+        leading: _selectionMode
+            ? IconButton(
+          onPressed:
+          _cancelSelection,
+          icon: const Icon(
+            Icons.close,
+          ),
+        )
+            : null,
+        title: Text(
+          _selectionMode
+              ? '${_selectedIds.length} selected'
+              : 'My Shopping Lists',
         ),
-        actions: [
+        actions: _selectionMode
+            ? [
           IconButton(
             onPressed:
-            _loading ? null : _load,
-            icon:
-            const Icon(Icons.refresh),
+            _selectAll,
+            tooltip:
+            'Select all',
+            icon: Icon(
+              _selectedIds.length ==
+                  _lists.length
+                  ? Icons
+                  .deselect
+                  : Icons
+                  .select_all,
+            ),
+          ),
+          IconButton(
+            onPressed:
+            _selectedIds.isEmpty
+                ? null
+                : _deleteSelected,
+            tooltip:
+            'Delete selected',
+            icon: const Icon(
+              Icons
+                  .delete_outline,
+            ),
+          ),
+        ]
+            : [
+          if (_lists.isNotEmpty)
+            IconButton(
+              onPressed: () {
+                setState(() {
+                  _selectionMode =
+                  true;
+                });
+              },
+              tooltip:
+              'Select lists',
+              icon: const Icon(
+                Icons
+                    .checklist_outlined,
+              ),
+            ),
+          if (_lists.isNotEmpty)
+            IconButton(
+              onPressed:
+              _clearAllLists,
+              tooltip:
+              'Clear all lists',
+              icon: const Icon(
+                Icons
+                    .delete_sweep_outlined,
+              ),
+            ),
+          IconButton(
+            onPressed: _loading
+                ? null
+                : _load,
+            icon: const Icon(
+              Icons.refresh,
+            ),
             tooltip: 'Refresh',
           ),
         ],
@@ -349,14 +675,23 @@ class _ShoppingListScreenState
         child: _buildBody(),
       ),
       floatingActionButton:
-      FloatingActionButton.extended(
-        onPressed:
-        _loading ? null : _createList,
+      _selectionMode
+          ? null
+          : FloatingActionButton
+          .extended(
+        onPressed: _loading
+            ? null
+            : _createList,
         backgroundColor:
         Colors.green.shade700,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('New List'),
+        foregroundColor:
+        Colors.white,
+        icon: const Icon(
+          Icons.add,
+        ),
+        label: const Text(
+          'New List',
+        ),
       ),
     );
   }
@@ -370,16 +705,17 @@ class _ShoppingListScreenState
       ),
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(28),
+          padding:
+          const EdgeInsets.all(28),
           child: Column(
             mainAxisSize:
             MainAxisSize.min,
             children: [
-              Icon(
-                Icons.favorite_border,
-                size: 70,
-                color:
-                Colors.green.shade300,
+              Image.asset(
+                'assets/images/grocery.png',
+                width: 100,
+                height: 100,
+                fit: BoxFit.contain,
               ),
               const SizedBox(height: 16),
               Text(
@@ -425,7 +761,8 @@ class _ShoppingListScreenState
   }
 
   Widget _buildBody() {
-    if (_loading && _lists.isEmpty) {
+    if (_loading &&
+        _lists.isEmpty) {
       return ListView(
         children: const [
           SizedBox(height: 220),
@@ -451,11 +788,13 @@ class _ShoppingListScreenState
           const SizedBox(height: 12),
           Text(
             _error!,
-            textAlign: TextAlign.center,
+            textAlign:
+            TextAlign.center,
           ),
           const SizedBox(height: 12),
           Center(
-            child: OutlinedButton.icon(
+            child:
+            OutlinedButton.icon(
               onPressed: _load,
               icon: const Icon(
                 Icons.refresh,
@@ -473,11 +812,14 @@ class _ShoppingListScreenState
         padding:
         const EdgeInsets.all(28),
         children: [
-          const SizedBox(height: 110),
-          Icon(
-            Icons.playlist_add_outlined,
-            size: 74,
-            color: Colors.green.shade300,
+          const SizedBox(height: 90),
+          Center(
+            child: Image.asset(
+              'assets/images/grocery.png',
+              width: 110,
+              height: 110,
+              fit: BoxFit.contain,
+            ),
           ),
           const SizedBox(height: 14),
           Text(
@@ -489,22 +831,26 @@ class _ShoppingListScreenState
               fontWeight:
               FontWeight.bold,
             ),
-            textAlign: TextAlign.center,
+            textAlign:
+            TextAlign.center,
           ),
           const SizedBox(height: 7),
           Text(
             'Tap New List to create your first personalised list.',
             style: TextStyle(
-              color: Colors.grey.shade600,
+              color:
+              Colors.grey.shade600,
             ),
-            textAlign: TextAlign.center,
+            textAlign:
+            TextAlign.center,
           ),
         ],
       );
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(
+      padding:
+      const EdgeInsets.fromLTRB(
         14,
         12,
         14,
@@ -513,24 +859,47 @@ class _ShoppingListScreenState
       itemCount: _lists.length,
       separatorBuilder:
           (context, index) =>
-      const SizedBox(height: 8),
+      const SizedBox(
+        height: 8,
+      ),
       itemBuilder: (context, index) {
-        final list = _lists[index];
+        final list =
+        _lists[index];
+
+        final selected =
+        _selectedIds.contains(
+          list.id,
+        );
 
         return Card(
+          color: selected
+              ? Colors.green.shade50
+              : null,
           child: ListTile(
             contentPadding:
             const EdgeInsets.symmetric(
-              horizontal: 16,
+              horizontal: 12,
               vertical: 7,
             ),
-            leading: CircleAvatar(
-              backgroundColor:
-              Colors.green.shade50,
-              child: Icon(
-                Icons.shopping_bag_outlined,
-                color:
-                Colors.green.shade700,
+            leading: _selectionMode
+                ? Checkbox(
+              value: selected,
+              onChanged: (_) {
+                _toggleSelection(
+                  list.id,
+                );
+              },
+            )
+                : ClipRRect(
+              borderRadius:
+              BorderRadius.circular(
+                10,
+              ),
+              child: Image.asset(
+                'assets/images/grocery.png',
+                width: 52,
+                height: 52,
+                fit: BoxFit.cover,
               ),
             ),
             title: Text(
@@ -549,38 +918,69 @@ class _ShoppingListScreenState
                 '${list.itemCount} item${list.itemCount == 1 ? '' : 's'} • ${_currency.format(list.estimatedTotal)}',
               ),
             ),
-            trailing:
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'rename') {
-                  _renameList(list);
+            trailing: _selectionMode
+                ? null
+                : PopupMenuButton<
+                String>(
+              onSelected:
+                  (value) {
+                if (value ==
+                    'rename') {
+                  _renameList(
+                    list,
+                  );
                 }
 
-                if (value == 'delete') {
-                  _deleteList(list);
+                if (value ==
+                    'delete') {
+                  _deleteSingleList(
+                    list,
+                  );
                 }
               },
               itemBuilder:
                   (menuContext) =>
               const [
                 PopupMenuItem(
-                  value: 'rename',
-                  child: Text('Rename'),
+                  value:
+                  'rename',
+                  child: Text(
+                    'Rename',
+                  ),
                 ),
                 PopupMenuItem(
-                  value: 'delete',
-                  child: Text('Delete'),
+                  value:
+                  'delete',
+                  child: Text(
+                    'Delete',
+                  ),
                 ),
               ],
             ),
+            onLongPress: () {
+              if (!_selectionMode) {
+                _startSelection(
+                  list.id,
+                );
+              }
+            },
             onTap: () async {
+              if (_selectionMode) {
+                _toggleSelection(
+                  list.id,
+                );
+                return;
+              }
+
               await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) =>
                       ShoppingListDetailScreen(
-                        listId: list.id,
-                        listName: list.name,
+                        listId:
+                        list.id,
+                        listName:
+                        list.name,
                       ),
                 ),
               );

@@ -6,6 +6,7 @@ import '../../models/shopping_list_models.dart';
 import '../../services/cart_cloud_service.dart';
 import '../../services/cart_service.dart';
 import '../../services/shopping_list_service.dart';
+import '../search/product_icon_tile.dart';
 
 class ShoppingListDetailScreen
     extends StatefulWidget {
@@ -26,12 +27,15 @@ class ShoppingListDetailScreen
 
 class _ShoppingListDetailScreenState
     extends State<ShoppingListDetailScreen> {
-  final _currency = NumberFormat.currency(
+  final NumberFormat _currency =
+  NumberFormat.currency(
     locale: 'ms_MY',
     symbol: 'RM ',
   );
 
-  List<ShoppingListItemModel> _items = [];
+  List<ShoppingListItemModel> _items =
+  [];
+
   bool _loading = true;
   bool _addingToCart = false;
 
@@ -51,7 +55,9 @@ class _ShoppingListDetailScreenState
     try {
       final items =
       await ShoppingListService.instance
-          .loadItems(widget.listId);
+          .loadItems(
+        widget.listId,
+      );
 
       if (mounted) {
         setState(() {
@@ -140,20 +146,25 @@ class _ShoppingListDetailScreenState
     });
 
     try {
-      final cartService = CartService();
+      final cartService =
+      CartService();
 
       await cartService.initialize();
 
-      final exactItems = _items
+      final exactItems =
+      _items
           .map(
             (item) => CartItem(
-          itemCode: item.itemCode,
-          itemName: item.itemName,
+          itemCode:
+          item.itemCode,
+          itemName:
+          item.itemName,
           premiseCode:
           item.premiseCode,
           storeName:
           item.storeName,
-          price: item.price,
+          price:
+          item.price,
           unit: item.unit,
           category:
           item.category,
@@ -214,7 +225,8 @@ class _ShoppingListDetailScreenState
 
   @override
   Widget build(BuildContext context) {
-    final total = _items.fold<double>(
+    final total =
+    _items.fold<double>(
       0,
           (sum, item) =>
       sum + item.lineTotal,
@@ -222,7 +234,9 @@ class _ShoppingListDetailScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.listName),
+        title: Text(
+          widget.listName,
+        ),
         actions: [
           IconButton(
             onPressed:
@@ -243,19 +257,18 @@ class _ShoppingListDetailScreenState
           ? Center(
         child: Padding(
           padding:
-          const EdgeInsets
-              .all(28),
+          const EdgeInsets.all(
+            28,
+          ),
           child: Column(
             mainAxisSize:
             MainAxisSize.min,
             children: [
-              Icon(
-                Icons
-                    .shopping_bag_outlined,
-                size: 70,
-                color: Colors
-                    .green
-                    .shade300,
+              Image.asset(
+                'assets/images/grocery.png',
+                width: 100,
+                height: 100,
+                fit: BoxFit.contain,
               ),
               const SizedBox(
                 height: 14,
@@ -265,21 +278,19 @@ class _ShoppingListDetailScreenState
                 style: TextStyle(
                   fontSize: 19,
                   fontWeight:
-                  FontWeight
-                      .bold,
+                  FontWeight.bold,
                 ),
               ),
               const SizedBox(
                 height: 7,
               ),
               Text(
-                'Open a product, choose a store, then tap a shopping list to save it here.',
+                'Open a product, choose a store, then choose this shopping list.',
                 textAlign:
                 TextAlign.center,
                 style: TextStyle(
-                  color: Colors
-                      .grey
-                      .shade600,
+                  color:
+                  Colors.grey.shade600,
                 ),
               ),
             ],
@@ -288,8 +299,7 @@ class _ShoppingListDetailScreenState
       )
           : ListView.separated(
         padding:
-        const EdgeInsets
-            .fromLTRB(
+        const EdgeInsets.fromLTRB(
           12,
           12,
           12,
@@ -309,8 +319,9 @@ class _ShoppingListDetailScreenState
             return Card(
               child: Padding(
                 padding:
-                const EdgeInsets
-                    .all(16),
+                const EdgeInsets.all(
+                  16,
+                ),
                 child: Row(
                   mainAxisAlignment:
                   MainAxisAlignment
@@ -318,24 +329,20 @@ class _ShoppingListDetailScreenState
                   children: [
                     const Text(
                       'Estimated total',
-                      style:
-                      TextStyle(
+                      style: TextStyle(
                         fontWeight:
-                        FontWeight
-                            .w600,
+                        FontWeight.w600,
                       ),
                     ),
                     Text(
-                      _currency
-                          .format(
+                      _currency.format(
                         total,
                       ),
                       style:
                       const TextStyle(
                         fontSize: 18,
                         fontWeight:
-                        FontWeight
-                            .bold,
+                        FontWeight.bold,
                       ),
                     ),
                   ],
@@ -350,8 +357,9 @@ class _ShoppingListDetailScreenState
           return Card(
             child: Padding(
               padding:
-              const EdgeInsets
-                  .all(12),
+              const EdgeInsets.all(
+                12,
+              ),
               child: Column(
                 crossAxisAlignment:
                 CrossAxisAlignment
@@ -362,17 +370,22 @@ class _ShoppingListDetailScreenState
                     CrossAxisAlignment
                         .start,
                     children: [
-                      CircleAvatar(
-                        backgroundColor:
-                        Colors
-                            .green
-                            .shade50,
-                        child: Icon(
-                          Icons
-                              .local_grocery_store_outlined,
-                          color: Colors
-                              .green
-                              .shade700,
+                      ClipRRect(
+                        borderRadius:
+                        BorderRadius
+                            .circular(
+                          10,
+                        ),
+                        child: SizedBox(
+                          width: 64,
+                          height: 64,
+                          child:
+                          ProductIconTile(
+                            itemName:
+                            item.itemName,
+                            category:
+                            item.category,
+                          ),
                         ),
                       ),
                       const SizedBox(
@@ -389,8 +402,7 @@ class _ShoppingListDetailScreenState
                               style:
                               const TextStyle(
                                 fontWeight:
-                                FontWeight
-                                    .w700,
+                                FontWeight.bold,
                               ),
                             ),
                             const SizedBox(
@@ -401,8 +413,7 @@ class _ShoppingListDetailScreenState
                               style:
                               TextStyle(
                                 color: Colors
-                                    .grey
-                                    .shade700,
+                                    .grey.shade700,
                               ),
                             ),
                             const SizedBox(
@@ -420,12 +431,11 @@ class _ShoppingListDetailScreenState
                             item,
                           );
                         },
-                        icon: const Icon(
-                          Icons
-                              .delete_outline,
+                        icon:
+                        const Icon(
+                          Icons.delete_outline,
                         ),
-                        tooltip:
-                        'Remove',
+                        tooltip: 'Remove',
                       ),
                     ],
                   ),
@@ -436,11 +446,9 @@ class _ShoppingListDetailScreenState
                     children: [
                       const Text(
                         'Quantity',
-                        style:
-                        TextStyle(
+                        style: TextStyle(
                           fontWeight:
-                          FontWeight
-                              .w600,
+                          FontWeight.w600,
                         ),
                       ),
                       const Spacer(),
@@ -453,7 +461,8 @@ class _ShoppingListDetailScreenState
                                 1,
                           );
                         },
-                        icon: const Icon(
+                        icon:
+                        const Icon(
                           Icons.remove,
                           size: 18,
                         ),
@@ -470,8 +479,7 @@ class _ShoppingListDetailScreenState
                           const TextStyle(
                             fontSize: 16,
                             fontWeight:
-                            FontWeight
-                                .bold,
+                            FontWeight.bold,
                           ),
                         ),
                       ),
@@ -484,7 +492,8 @@ class _ShoppingListDetailScreenState
                                 1,
                           );
                         },
-                        icon: const Icon(
+                        icon:
+                        const Icon(
                           Icons.add,
                           size: 18,
                         ),
@@ -503,28 +512,23 @@ class _ShoppingListDetailScreenState
           : SafeArea(
         child: Padding(
           padding:
-          const EdgeInsets
-              .fromLTRB(
+          const EdgeInsets.fromLTRB(
             16,
             8,
             16,
             16,
           ),
-          child:
-          FilledButton.icon(
+          child: FilledButton.icon(
             onPressed:
             _addingToCart
                 ? null
                 : _addWholeListToCart,
-            style: FilledButton
-                .styleFrom(
+            style:
+            FilledButton.styleFrom(
               backgroundColor:
-              Colors
-                  .green
-                  .shade700,
+              Colors.green.shade700,
               padding:
-              const EdgeInsets
-                  .symmetric(
+              const EdgeInsets.symmetric(
                 vertical: 15,
               ),
             ),
@@ -534,15 +538,12 @@ class _ShoppingListDetailScreenState
               height: 18,
               child:
               CircularProgressIndicator(
-                strokeWidth:
-                2,
-                color:
-                Colors.white,
+                strokeWidth: 2,
+                color: Colors.white,
               ),
             )
                 : const Icon(
-              Icons
-                  .add_shopping_cart,
+              Icons.add_shopping_cart,
             ),
             label: Text(
               _addingToCart
