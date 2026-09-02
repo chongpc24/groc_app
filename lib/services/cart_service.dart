@@ -18,6 +18,7 @@ class CartService {
 
   String _userLocation = 'Klang';
   Cart _cart = Cart();
+  Future<void> _localSaveQueue = Future<void>.value();
 
   String get userLocation => _userLocation;
 
@@ -28,7 +29,9 @@ class CartService {
   }
 
   Future<void> initialize() async {
+    await _localSaveQueue;
     await _loadCartFromLocalDatabase();
+    await _enqueueLocalSave();
   }
 
   void addToCart({
@@ -53,7 +56,7 @@ class CartService {
     );
 
     _cart.addItem(cartItem);
-    _saveCartToLocalDatabase();
+    _enqueueLocalSave();
   }
 
   Future<void> setMultipleItemsExact(
@@ -63,7 +66,7 @@ class CartService {
       _cart.setItem(item);
     }
 
-    await _saveCartToLocalDatabase();
+    await _enqueueLocalSave();
   }
 
   void removeFromCart(
@@ -74,7 +77,8 @@ class CartService {
       premiseCode,
       itemCode,
     );
-    _saveCartToLocalDatabase();
+
+    _enqueueLocalSave();
   }
 
   void updateQuantity(
@@ -87,12 +91,13 @@ class CartService {
       itemCode,
       newQuantity,
     );
-    _saveCartToLocalDatabase();
+
+    _enqueueLocalSave();
   }
 
   void clearCart() {
     _cart.clear();
-    _saveCartToLocalDatabase();
+    _enqueueLocalSave();
   }
 
   Future<void> saveOrderToHistory() async {
@@ -125,14 +130,16 @@ class CartService {
       'premiseCode': premiseCode,
       'storeName': storeName,
       'totalAmount': total,
-      'itemCount': items.length,
+      'itemCount': _cart.totalItemCount,
       'deliveryAddress': _userLocation,
     });
   }
 
   Future<List<Order>> getOrderHistory() async {
     try {
-      final orders = await _dbService.getOrderHistory();
+      final orders =
+      await _dbService.getOrderHistory();
+
       final List<Order> orderList = [];
 
       for (final orderData in orders) {
@@ -143,7 +150,9 @@ class CartService {
               orderData['orderDate'],
             ),
             items: [],
-            total: (orderData['totalAmount'] as num).toDouble(),
+            total:
+            (orderData['totalAmount'] as num)
+                .toDouble(),
           ),
         );
       }
@@ -157,7 +166,8 @@ class CartService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getRawOrderHistory() async {
+  Future<List<Map<String, dynamic>>>
+  getRawOrderHistory() async {
     try {
       return await _dbService.getOrderHistory();
     } catch (error) {
@@ -174,48 +184,65 @@ class CartService {
 
   Future<void> syncBothWays() async {}
 
-  Future<void> _saveCartToLocalDatabase() async {
-    try {
-      await _dbService.clearCart();
-
-      for (final premiseCode in _cart.storeList) {
-        final items = _cart.getStoreItems(
-          premiseCode,
+  Future<void> _enqueueLocalSave() {
+    _localSaveQueue = _localSaveQueue
+        .then(
+          (_) => _persistCurrentCartSnapshot(),
+    )
+        .catchError(
+          (Object error, StackTrace stackTrace) {
+        debugPrint(
+          'Unable to save cart locally: $error',
         );
+      },
+    );
 
-        for (final item in items) {
-          await _dbService.addToCart({
-            'itemCode': item.itemCode,
-            'itemName': item.itemName,
-            'premiseCode': item.premiseCode,
-            'storeName': item.storeName,
-            'price': item.price,
-            'quantity': item.quantity,
-          });
-        }
+    return _localSaveQueue;
+  }
+
+  Future<void> _persistCurrentCartSnapshot() async {
+    await _dbService.clearCart();
+
+    for (final premiseCode in _cart.storeList) {
+      final items =
+      _cart.getStoreItems(premiseCode);
+
+      for (final item in items) {
+        await _dbService.addToCart({
+          'itemCode': item.itemCode,
+          'itemName': item.itemName,
+          'premiseCode': item.premiseCode,
+          'storeName': item.storeName,
+          'price': item.price,
+          'quantity': item.quantity,
+        });
       }
-    } catch (error) {
-      debugPrint(
-        'Unable to save cart locally: $error',
-      );
     }
   }
 
   Future<void> _loadCartFromLocalDatabase() async {
     try {
       final loadedCart = Cart();
-      final cartItems = await _dbService.getAllCartItems();
+
+      final cartItems =
+      await _dbService.getAllCartItems();
 
       for (final itemData in cartItems) {
         final item = CartItem(
-          itemCode: itemData['itemCode'].toString(),
-          itemName: itemData['itemName'].toString(),
-          premiseCode: itemData['premiseCode'].toString(),
-          storeName: itemData['storeName'].toString(),
-          price: (itemData['price'] as num).toDouble(),
+          itemCode:
+          itemData['itemCode'].toString(),
+          itemName:
+          itemData['itemName'].toString(),
+          premiseCode:
+          itemData['premiseCode'].toString(),
+          storeName:
+          itemData['storeName'].toString(),
+          price:
+          (itemData['price'] as num).toDouble(),
           unit: '',
           category: '',
-          quantity: (itemData['quantity'] as num).toInt(),
+          quantity:
+          (itemData['quantity'] as num).toInt(),
         );
 
         loadedCart.setItem(item);
@@ -226,6 +253,7 @@ class CartService {
       debugPrint(
         'Unable to load local cart: $error',
       );
+
       _cart = Cart();
     }
   }
