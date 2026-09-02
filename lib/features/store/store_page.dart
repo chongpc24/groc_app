@@ -95,10 +95,21 @@ class _StorePageState extends State<StorePage> {
         final lon = (osm['lon'] ?? osm['center']?['lon'])?.toDouble();
         if (lat == null || lon == null) continue;
 
-        final matched = NameMatcher.bestMatch(
+        final osmLocationHint = [
           osmName,
+          tags['branch'],
+          tags['addr:suburb'],
+          tags['addr:city'],
+          tags['addr:district'],
+        ]
+            .where((value) => value != null && value.toString().trim().isNotEmpty)
+            .map((value) => value.toString())
+            .join(' ');
+
+        final matched = NameMatcher.bestMatch(
+          osmLocationHint,
           premises,
-              (p) => p.premise,
+              (p) => '${p.premise} ${p.address} ${p.district}',
         );
         if (matched == null) continue;
 
@@ -110,7 +121,7 @@ class _StorePageState extends State<StorePage> {
         );
 
         result.add(Store(
-          name: osmName,
+          name: matched.premise,
           latitude: lat,
           longitude: lon,
           distanceKm: distanceMeters / 1000,
@@ -495,7 +506,12 @@ class _StorePageState extends State<StorePage> {
                     store.name,
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  subtitle: Text('${store.distanceKm.toStringAsFixed(1)} km'),
+                  subtitle: Text(
+                    '${store.distanceKm.toStringAsFixed(1)} km\n${store.address}',
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  isThreeLine: true,
                   onTap: () {
                     _mapController.move(
                       LatLng(store.latitude, store.longitude),

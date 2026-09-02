@@ -3,6 +3,10 @@ import 'package:intl/intl.dart';
 import '../../services/cart_service.dart';
 import 'cart_item_tile.dart';
 import 'order_history_screen.dart';
+import '../../services/auth_service.dart';
+import '../../services/cart_cloud_service.dart';
+import '../account/login_screen.dart';
+
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -21,9 +25,56 @@ class _CartScreenState extends State<CartScreen> {
     _initializeCart();
   }
 
+  Future<void> _syncCloud() async {
+    if (!AuthService.instance.isLoggedIn) return;
+    await CartCloudService.instance.safeSync(_cartService);
+  }
+
   Future<void> _initializeCart() async {
+    if (!AuthService.instance.isLoggedIn) {
+      if (mounted) setState(() {});
+      return;
+    }
+
     await _cartService.initialize();
-    setState(() {});
+    await CartCloudService.instance.restoreToLocalIfEmpty(_cartService);
+    if (mounted) setState(() {});
+  }
+
+  Widget _buildLoginRequired(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_outline, size: 72, color: Colors.green.shade300),
+            const SizedBox(height: 16),
+            const Text(
+              'Login required for cart',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'You can continue browsing as a guest, but cart and order data are available only after login.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: () async {
+                final loggedIn = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(builder: (routeContext) => const LoginScreen()),
+                );
+                if (loggedIn == true) await _initializeCart();
+              },
+              icon: const Icon(Icons.login),
+              label: const Text('Login'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -53,10 +104,12 @@ class _CartScreenState extends State<CartScreen> {
             ),
         ],
       ),
-      body: _cartService.cart.isEmpty
+      body: !AuthService.instance.isLoggedIn
+          ? _buildLoginRequired(context)
+          : _cartService.cart.isEmpty
           ? _buildEmptyCart(context)
           : _buildCartContent(context),
-      bottomNavigationBar: _cartService.cart.isEmpty
+      bottomNavigationBar: !AuthService.instance.isLoggedIn || _cartService.cart.isEmpty
           ? null
           : _buildBottomSummary(context),
     );
@@ -203,11 +256,13 @@ class _CartScreenState extends State<CartScreen> {
                       newQuantity,
                     );
                   });
+                  _syncCloud();
                 },
                 onRemove: () {
                   setState(() {
                     _cartService.removeFromCart(premiseCode, item.itemCode);
                   });
+                  _syncCloud();
                 },
               );
             },
@@ -263,7 +318,7 @@ class _CartScreenState extends State<CartScreen> {
           value,
           style: TextStyle(
             fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            fontSize: isBold ? 18 : 14, // ✅ 改回去了
+            fontSize: isBold ? 18 : 14,
             color: isFree ? Colors.green : null,
           ),
         ),
@@ -359,6 +414,7 @@ class _CartScreenState extends State<CartScreen> {
               }
               Navigator.pop(context);
               setState(() {});
+              _syncCloud();
             },
             child: const Text('Remove', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
           ),
@@ -382,6 +438,7 @@ class _CartScreenState extends State<CartScreen> {
           TextButton(
             onPressed: () {
               _cartService.clearCart();
+              _syncCloud();
               Navigator.pop(context);
               setState(() {});
             },
@@ -480,26 +537,32 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Future<void> _processPayment() async {
+    if (!AuthService.instance.isLoggedIn) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Payment processing... '),
-        duration: Duration(seconds: 2),
+        content: Text('Payment processing...'),
+        duration: Duration(seconds: 1),
         backgroundColor: Colors.black87,
       ),
     );
 
-    await Future.delayed(const Duration(seconds: 2));
-    if (!mounted) return;
-
-    await _cartService.saveOrderToHistory();
-
     try {
-      await _cartService.syncToCloud();
-    } catch (e) {
+      await CartCloudService.instance.placeOrderFromLocal(_cartService);
+      await _cartService.saveOrderToHistory();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Order could not be saved: $error'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
     }
 
     _cartService.clearCart();
-    setState(() {});
+    if (mounted) setState(() {});
 
     if (!mounted) return;
     _showOrderPlacedDialog();
