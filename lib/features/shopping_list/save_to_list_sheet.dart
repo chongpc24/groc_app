@@ -164,7 +164,7 @@ class _SaveToListContentState
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text(
-          'New Shopping List',
+          'New List',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         content: TextFormField(

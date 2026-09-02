@@ -112,7 +112,7 @@ class _ShoppingListScreenState
 
   Future<void> _createList() async {
     final name = await _askForName(
-      title: 'New Shopping List',
+      title: 'New List',
       initialValue: '',
       buttonText: 'Create',
     );
